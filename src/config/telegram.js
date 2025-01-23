@@ -1,13 +1,11 @@
-// Telegram Widget Parameters
-export const TELEGRAM_LOGIN_PARAMS = {
-  botId: 'vomeo_bot',
-  requestAccess: 'write',
-  buttonSize: 'large',
-  cornerRadius: 8,
-  showUserPhoto: true,
-  lang: 'en',
-  origin: 'https://vomeo.netlify.app',
-  domain: 'https://vomeo.netlify.app'
+// Bot Configuration
+export const BOT_USERNAME = 'vomeo_bot';
+
+// Admin Roles
+export const ADMIN_ROLES = {
+  SUPER_ADMIN: 'super_admin',
+  MODERATOR: 'moderator',
+  EDITOR: 'editor',
 };
 
 // Auth Routes
@@ -18,17 +16,9 @@ export const AUTH_ROUTES = {
   admin: '/admin',
 };
 
-// Admin Roles
-export const ADMIN_ROLES = {
-  SUPER_ADMIN: 'super_admin',
-  MODERATOR: 'moderator',
-  EDITOR: 'editor',
-};
-
 // Secure config that's only used server-side
 export const getServerConfig = () => ({
   botToken: import.meta.env.VITE_TELEGRAM_BOT_TOKEN,
-  botUsername: 'vomeo_bot',
   redirectUrl: 'https://vomeo.netlify.app/auth/callback',
   origin: 'https://vomeo.netlify.app',
 }); 

@@ -1,33 +1,46 @@
 import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { TELEGRAM_LOGIN_PARAMS } from '../config/telegram';
 
 const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, login } = useAuth();
   const from = location.state?.from?.pathname || '/';
 
   useEffect(() => {
     if (user) {
       navigate(from, { replace: true });
-    } else {
-      // Save intended path
-      sessionStorage.setItem('intendedPath', from);
     }
 
-    // Load Telegram Widget Script
+    // Define the callback function exactly as Telegram provides
+    window.onTelegramAuth = (user) => {
+      // First show the alert as per Telegram's example
+      alert('Logged in as ' + user.first_name + ' ' + user.last_name + ' (' + user.id + (user.username ? ', @' + user.username : '') + ')');
+      
+      // Then handle our app's login
+      login({
+        id: user.id,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        username: user.username,
+        photoUrl: user.photo_url,
+        role: 'user', // Default role, will be checked on server
+      });
+      
+      // Navigate to intended path
+      const intendedPath = sessionStorage.getItem('intendedPath') || '/';
+      sessionStorage.removeItem('intendedPath');
+      navigate(intendedPath);
+    };
+
+    // Load Telegram Widget Script - exactly as provided
     const script = document.createElement('script');
     script.src = 'https://telegram.org/js/telegram-widget.js?22';
-    script.setAttribute('data-telegram-login', TELEGRAM_LOGIN_PARAMS.botId);
-    script.setAttribute('data-size', TELEGRAM_LOGIN_PARAMS.buttonSize);
-    script.setAttribute('data-radius', TELEGRAM_LOGIN_PARAMS.cornerRadius);
-    script.setAttribute('data-request-access', TELEGRAM_LOGIN_PARAMS.requestAccess);
-    script.setAttribute('data-userpic', TELEGRAM_LOGIN_PARAMS.showUserPhoto);
-    script.setAttribute('data-lang', TELEGRAM_LOGIN_PARAMS.lang);
-    script.setAttribute('data-auth-url', `${TELEGRAM_LOGIN_PARAMS.origin}/auth/callback`);
-    script.setAttribute('data-origin', TELEGRAM_LOGIN_PARAMS.origin);
+    script.setAttribute('data-telegram-login', 'vomeo_bot');
+    script.setAttribute('data-size', 'medium');
+    script.setAttribute('data-onauth', 'onTelegramAuth(user)');
+    script.setAttribute('data-request-access', 'write');
     script.async = true;
 
     const container = document.getElementById('telegram-login');
@@ -39,8 +52,10 @@ const Login = () => {
       if (container) {
         container.innerHTML = '';
       }
+      // Cleanup the global callback
+      delete window.onTelegramAuth;
     };
-  }, [user, navigate, from]);
+  }, [user, login, navigate, from]);
 
   return (
     <div className="min-h-screen bg-base-100 flex items-center justify-center px-4">
