@@ -19,7 +19,7 @@ const Login = () => {
 
     // Define the callback function exactly as Telegram provides
     window.onTelegramAuth = (user) => {
-      console.log('Telegram auth data:', user); // Add logging
+      console.log('Telegram auth data:', user);
       
       // Then handle our app's login
       login({
@@ -28,7 +28,7 @@ const Login = () => {
         lastName: user.last_name,
         username: user.username,
         photoUrl: user.photo_url,
-        role: 'user', // Default role, will be checked on server
+        role: 'user',
       });
       
       // Navigate to intended path
@@ -37,18 +37,31 @@ const Login = () => {
       navigate(intendedPath);
     };
 
-    // Load Telegram Widget Script - exactly as provided
+    // Create script element with nonce
     const script = document.createElement('script');
     script.src = 'https://telegram.org/js/telegram-widget.js?22';
-    script.setAttribute('data-telegram-login', BOT_USERNAME);
-    script.setAttribute('data-size', 'medium');
-    script.setAttribute('data-onauth', 'onTelegramAuth(user)');
-    script.setAttribute('data-request-access', 'write');
-    script.setAttribute('data-origin', SITE_DOMAIN.slice(0, -1)); // Remove trailing slash
     script.async = true;
+    script.defer = true;
+    script.crossOrigin = 'anonymous';
+    
+    // Add Telegram widget attributes
+    const attributes = {
+      'data-telegram-login': BOT_USERNAME,
+      'data-size': 'medium',
+      'data-onauth': 'onTelegramAuth(user)',
+      'data-request-access': 'write',
+      'data-origin': SITE_DOMAIN.slice(0, -1),
+      'data-userpic': 'false'
+    };
+
+    // Set all attributes
+    Object.entries(attributes).forEach(([key, value]) => {
+      script.setAttribute(key, value);
+    });
 
     const container = document.getElementById('telegram-login');
     if (container) {
+      container.innerHTML = ''; // Clear any existing content
       container.appendChild(script);
     }
 
@@ -56,7 +69,6 @@ const Login = () => {
       if (container) {
         container.innerHTML = '';
       }
-      // Cleanup the global callback
       delete window.onTelegramAuth;
     };
   }, [user, login, navigate, from]);
