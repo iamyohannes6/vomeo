@@ -382,9 +382,9 @@ const AdminDashboard = () => {
                   <h3 className="text-lg font-semibold text-gray-100 mb-4">Hero Promotional Content</h3>
                   <PromoEditor 
                     currentPromo={promo} 
-                    onSave={(data) => handleSavePromo(data, false)}
+                    onSave={(data) => handleSavePromo(data, false)} 
                   />
-                  {saveStatus && !saveStatus.includes('secondary') && (
+                  {saveStatus.includes('saving') && !saveStatus.includes('secondary') && (
                     <div className={`mt-4 p-3 rounded-lg text-center ${
                       saveStatus === 'saving' ? 'bg-primary/10 text-primary' :
                       saveStatus === 'saved' ? 'bg-green-500/10 text-green-500' :
@@ -404,7 +404,7 @@ const AdminDashboard = () => {
                     currentPromo={secondaryPromo} 
                     onSave={(data) => handleSavePromo(data, true)}
                   />
-                  {saveStatus && saveStatus.includes('secondary') && (
+                  {saveStatus.includes('secondary') && (
                     <div className={`mt-4 p-3 rounded-lg text-center ${
                       saveStatus === 'saving-secondary' ? 'bg-primary/10 text-primary' :
                       saveStatus === 'saved-secondary' ? 'bg-green-500/10 text-green-500' :

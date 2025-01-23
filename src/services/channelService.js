@@ -179,11 +179,10 @@ export const getFeaturedChannels = async () => {
   }
 };
 
-// Consolidated promo functions
-export const getPromo = async (isSecondary = false) => {
+// Promo functions
+export const getPromo = async () => {
   try {
-    const promoQuery = query(promoRef, where('isSecondary', '==', isSecondary));
-    const querySnapshot = await getDocs(promoQuery);
+    const querySnapshot = await getDocs(promoRef);
     const promos = querySnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
@@ -196,17 +195,31 @@ export const getPromo = async (isSecondary = false) => {
   }
 };
 
-export const updatePromoContent = async (promoData, isSecondary = false) => {
+export const getSecondaryPromo = async () => {
+  try {
+    const querySnapshot = await getDocs(secondaryPromoRef);
+    const promos = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    // Return the most recent promo
+    return promos.sort((a, b) => b.updatedAt - a.updatedAt)[0] || null;
+  } catch (error) {
+    console.error('Error getting secondary promo:', error);
+    throw error;
+  }
+};
+
+export const updatePromo = async (promoData) => {
   try {
     const timestamp = Timestamp.now();
     const data = {
       ...promoData,
-      isSecondary,
       updatedAt: timestamp
     };
 
     // Get existing promo
-    const existingPromo = await getPromo(isSecondary);
+    const existingPromo = await getPromo();
 
     if (existingPromo) {
       // Update existing promo
@@ -226,12 +239,68 @@ export const updatePromoContent = async (promoData, isSecondary = false) => {
   }
 };
 
+export const updateSecondaryPromo = async (promoData) => {
+  try {
+    const timestamp = Timestamp.now();
+    const data = {
+      ...promoData,
+      updatedAt: timestamp
+    };
+
+    // Get existing secondary promo
+    const existingPromo = await getSecondaryPromo();
+
+    if (existingPromo) {
+      // Update existing promo
+      await updateDoc(doc(secondaryPromoRef, existingPromo.id), data);
+      return { id: existingPromo.id, ...data };
+    } else {
+      // Create new promo
+      const docRef = await addDoc(secondaryPromoRef, {
+        ...data,
+        createdAt: timestamp
+      });
+      return { id: docRef.id, ...data };
+    }
+  } catch (error) {
+    console.error('Error updating secondary promo:', error);
+    throw error;
+  }
+};
+
 export const removeChannel = async (channelId) => {
   try {
     const channelRef = doc(channelsRef, channelId);
     await deleteDoc(channelRef);
   } catch (error) {
     console.error('Error removing channel:', error);
+    throw error;
+  }
+};
+
+export const updatePromoContent = async (promoData, isSecondary = false) => {
+  try {
+    const promoQuery = query(promoRef, where('isSecondary', '==', isSecondary));
+    const snapshot = await getDocs(promoQuery);
+    
+    if (!snapshot.empty) {
+      // Update existing promo
+      const promoDoc = snapshot.docs[0];
+      await updateDoc(doc(promoRef, promoDoc.id), {
+        ...promoData,
+        updatedAt: Timestamp.now()
+      });
+    } else {
+      // Create new promo
+      await addDoc(promoRef, {
+        ...promoData,
+        isSecondary,
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now()
+      });
+    }
+  } catch (error) {
+    console.error('Error updating promo content:', error);
     throw error;
   }
 }; 
