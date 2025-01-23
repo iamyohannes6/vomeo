@@ -4,6 +4,7 @@ import { StarIcon, ShieldCheckIcon, FunnelIcon, ChevronLeftIcon, ChevronRightIco
 import { useChannels } from '../contexts/ChannelsContext';
 import CompactChannelCard from '../components/CompactChannelCard';
 import PromoSection from '../components/PromoSection';
+import { categories } from '../config/categories';
 
 const ChannelCard = ({ channel }) => (
   <div className="bg-base-200 rounded-xl p-4 hover:bg-base-300 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 border border-base-300/10">
@@ -63,7 +64,7 @@ const ChannelCard = ({ channel }) => (
     {channel.category && (
       <div className="mt-3">
         <span className="inline-block px-2 py-1 text-xs rounded-md bg-base-300 text-gray-300">
-          {channel.category}
+          {categories.find(c => c.value === channel.category)?.label || channel.category}
         </span>
       </div>
     )}
@@ -93,14 +94,29 @@ const Home = () => {
   const [sortBy, setSortBy] = useState('newest');
   const [filterCategory, setFilterCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const featuredScrollRef = useRef(null);
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   // Filter and sort channels
   const filteredChannels = channels.approved?.filter(channel => {
+    // Category filter
     const matchesCategory = filterCategory === 'all' || channel.category === filterCategory;
-    const matchesSearch = !searchQuery || 
-      channel.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      channel.description?.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    // Search filter
+    const matchesSearch = !debouncedSearch || 
+      channel.title?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      channel.description?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      channel.username?.toLowerCase().includes(debouncedSearch.toLowerCase());
+
     return matchesCategory && matchesSearch;
   }) || [];
 
@@ -258,14 +274,11 @@ const Home = () => {
                 onChange={(e) => setFilterCategory(e.target.value)}
                 className="px-4 py-2 bg-base-300 border border-base-300 rounded-lg text-gray-100 focus:outline-none focus:border-primary min-w-[150px]"
               >
-                <option value="all">All Categories</option>
-                <option value="tech">Technology</option>
-                <option value="entertainment">Entertainment</option>
-                <option value="news">News</option>
-                <option value="education">Education</option>
-                <option value="crypto">Cryptocurrency</option>
-                <option value="business">Business</option>
-                <option value="lifestyle">Lifestyle</option>
+                {categories.map(category => (
+                  <option key={category.value} value={category.value}>
+                    {category.label}
+                  </option>
+                ))}
               </select>
 
               <select

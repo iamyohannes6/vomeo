@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useChannels } from '../contexts/ChannelsContext';
 import { verifyChannel, getChannelInfo } from '../utils/telegramApi';
 import { ShieldCheckIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
+import { categories } from '../config/categories';
 
 const MAX_DESCRIPTION_LENGTH = 300;
 
@@ -19,23 +20,9 @@ const Submit = () => {
 
   const [formData, setFormData] = useState({
     username: '',
-    category: 'Technology',
+    category: 'tech',
     description: ''
   });
-
-  const categories = [
-    'Technology',
-    'News',
-    'Entertainment',
-    'Education',
-    'Business',
-    'Sports',
-    'Art & Design',
-    'Science',
-    'Gaming',
-    'Music',
-    'Other'
-  ];
 
   // Fetch channel preview when username changes
   useEffect(() => {
@@ -98,180 +85,156 @@ const Submit = () => {
         submittedBy: {
           id: user?.id,
           username: user?.username,
-          firstName: user?.first_name,
-          lastName: user?.last_name
+          email: user?.email
         },
-        photo_url: channelPreview?.photo_url,
-        member_count: channelPreview?.member_count,
-        title: channelPreview?.title
+        ...(channelPreview && {
+          title: channelPreview.title,
+          photo_url: channelPreview.photo_url,
+          member_count: channelPreview.member_count
+        })
       });
 
       setSuccess(true);
-      setFormData({ username: '', category: 'Technology', description: '' });
-      setTimeout(() => navigate('/'), 2000);
-
+      setTimeout(() => {
+        navigate('/');
+      }, 2000);
     } catch (err) {
-      setError(err.message || 'Failed to submit channel. Please try again.');
+      setError(err.message || 'Failed to submit channel');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-base-200 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-2xl mx-auto">
-        <div className="bg-base-100 rounded-xl shadow-lg p-6 space-y-6">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold text-white">Submit a Channel</h2>
-            <p className="mt-2 text-gray-400">
-              Share your favorite Telegram channel with the community
-            </p>
-          </div>
+    <div className="min-h-screen bg-base-100 py-12">
+      <div className="max-w-2xl mx-auto px-4">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-white mb-2">Submit Your Channel</h1>
+          <p className="text-gray-400">
+            Share your Telegram channel with our community
+          </p>
+        </div>
 
-          <div className="flex justify-end">
-            <button
-              type="button"
-              className="text-gray-400 hover:text-white flex items-center gap-2 text-sm"
-              onClick={() => setShowGuidelines(!showGuidelines)}
-            >
-              <InformationCircleIcon className="h-5 w-5" />
-              Submission Guidelines
-            </button>
-          </div>
+        <div className="bg-base-200 rounded-xl p-6 md:p-8 space-y-6">
+          {/* Guidelines Toggle */}
+          <button
+            onClick={() => setShowGuidelines(!showGuidelines)}
+            className="w-full flex items-center justify-between p-4 bg-base-300/50 rounded-lg hover:bg-base-300 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <InformationCircleIcon className="w-5 h-5 text-primary" />
+              <span className="font-medium text-white">Submission Guidelines</span>
+            </div>
+            <span className="text-sm text-gray-400">{showGuidelines ? 'Hide' : 'Show'}</span>
+          </button>
 
+          {/* Guidelines Content */}
           {showGuidelines && (
-            <div className="bg-base-200 rounded-lg p-4 text-sm text-gray-300 space-y-2">
-              <h3 className="font-medium text-white">Before submitting:</h3>
-              <ul className="list-disc list-inside space-y-1">
-                <li>Ensure you have permission to submit the channel</li>
-                <li>Channel must be public and accessible</li>
-                <li>Content should be appropriate and follow our guidelines</li>
-                <li>Description should be clear and accurate</li>
-                <li>Choose the most relevant category</li>
-              </ul>
+            <div className="p-4 bg-base-300/30 rounded-lg text-sm text-gray-300 space-y-2">
+              <p>• Channel must be public and have a username</p>
+              <p>• Content must be appropriate and follow our community guidelines</p>
+              <p>• Channel should be active with regular updates</p>
+              <p>• Description should be clear and accurately represent the channel</p>
+              <p>• You should have permission to submit the channel</p>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Username Input */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">
+              <label htmlFor="username" className="block text-sm font-medium text-gray-200 mb-2">
                 Channel Username
               </label>
               <div className="relative">
-                <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
-                  @
-                </span>
                 <input
                   type="text"
+                  id="username"
                   name="username"
                   value={formData.username}
                   onChange={handleChange}
-                  className="block w-full pl-8 pr-3 py-2 bg-base-200 border border-base-300 rounded-lg focus:ring-1 focus:ring-primary focus:border-primary text-gray-100"
-                  placeholder="channel_username"
+                  placeholder="@yourchannel"
+                  className="w-full px-4 py-2 bg-base-300/50 border border-base-300 rounded-lg text-gray-100 focus:outline-none focus:border-primary placeholder-gray-500"
                   required
                 />
+                {channelPreview && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <ShieldCheckIcon className="w-5 h-5 text-green-500" />
+                  </div>
+                )}
               </div>
+              {channelPreview && (
+                <div className="mt-2 text-sm text-gray-400">
+                  Found: {channelPreview.title} ({channelPreview.member_count?.toLocaleString()} members)
+                </div>
+              )}
             </div>
 
-            {channelPreview && (
-              <div className="bg-base-200 rounded-lg p-4">
-                <div className="flex items-center space-x-4">
-                  {channelPreview.photo_url ? (
-                    <img 
-                      src={channelPreview.photo_url} 
-                      alt={channelPreview.title}
-                      className="w-16 h-16 rounded-lg object-cover"
-                    />
-                  ) : (
-                    <div className="w-16 h-16 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <span className="text-2xl text-primary">
-                        {channelPreview.title?.[0] || '@'}
-                      </span>
-                    </div>
-                  )}
-                  <div>
-                    <h3 className="font-medium text-white">{channelPreview.title}</h3>
-                    <p className="text-sm text-gray-400">@{channelPreview.username}</p>
-                    <p className="text-sm text-gray-400">
-                      {channelPreview.member_count?.toLocaleString()} members
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
+            {/* Category Select */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">
+              <label htmlFor="category" className="block text-sm font-medium text-gray-200 mb-2">
                 Category
               </label>
               <select
+                id="category"
                 name="category"
                 value={formData.category}
                 onChange={handleChange}
-                className="block w-full px-3 py-2 bg-base-200 border border-base-300 rounded-lg focus:ring-1 focus:ring-primary focus:border-primary text-gray-100"
+                className="w-full px-4 py-2 bg-base-300/50 border border-base-300 rounded-lg text-gray-100 focus:outline-none focus:border-primary"
                 required
               >
-                {categories.map(category => (
-                  <option key={category} value={category}>{category}</option>
+                {categories.filter(cat => cat.value !== 'all').map(category => (
+                  <option key={category.value} value={category.value}>
+                    {category.label}
+                  </option>
                 ))}
               </select>
             </div>
 
+            {/* Description Textarea */}
             <div>
-              <div className="flex justify-between mb-1">
-                <label className="block text-sm font-medium text-gray-300">
-                  Description
-                </label>
-                <span className="text-sm text-gray-400">
-                  {formData.description.length}/{MAX_DESCRIPTION_LENGTH}
-                </span>
-              </div>
+              <label htmlFor="description" className="block text-sm font-medium text-gray-200 mb-2">
+                Description
+              </label>
               <textarea
+                id="description"
                 name="description"
                 value={formData.description}
                 onChange={handleChange}
-                rows="4"
-                className="block w-full px-3 py-2 bg-base-200 border border-base-300 rounded-lg focus:ring-1 focus:ring-primary focus:border-primary text-gray-100"
-                placeholder="Tell us what this channel is about..."
+                rows={4}
+                placeholder="Tell us about your channel..."
+                className="w-full px-4 py-2 bg-base-300/50 border border-base-300 rounded-lg text-gray-100 focus:outline-none focus:border-primary placeholder-gray-500 resize-none"
                 required
               />
+              <div className="mt-1 text-xs text-gray-400 flex justify-between">
+                <span>Be clear and descriptive</span>
+                <span>{formData.description.length}/{MAX_DESCRIPTION_LENGTH}</span>
+              </div>
             </div>
 
+            {/* Error Message */}
             {error && (
-              <div className="p-3 bg-red-900/50 border border-red-500 rounded-lg">
-                <p className="text-sm text-red-500">{error}</p>
+              <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-500 text-sm">
+                {error}
               </div>
             )}
 
+            {/* Success Message */}
             {success && (
-              <div className="p-3 bg-green-900/50 border border-green-500 rounded-lg">
-                <p className="text-sm text-green-500">
-                  Channel submitted successfully! Redirecting...
-                </p>
+              <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-lg text-green-500 text-sm">
+                Channel submitted successfully! Redirecting...
               </div>
             )}
 
+            {/* Submit Button */}
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSubmitting ? (
-                <span className="flex items-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Submitting...
-                </span>
-              ) : 'Submit Channel'}
+              {isSubmitting ? 'Submitting...' : 'Submit Channel'}
             </button>
           </form>
-
-          <p className="text-center text-xs text-gray-500">
-            Only submit channels that you own or have permission to share.
-            Submissions are reviewed by moderators before being listed.
-          </p>
         </div>
       </div>
     </div>

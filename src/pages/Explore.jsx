@@ -13,33 +13,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useChannels } from '../contexts/ChannelsContext';
 import { Link } from 'react-router-dom';
-
-const categories = [
-  { label: 'All Categories', value: 'all', icon: HashtagIcon },
-  { label: 'Technology', value: 'tech', icon: ChartBarIcon },
-  { label: 'Cryptocurrency', value: 'crypto', icon: StarIcon },
-  { label: 'Gaming', value: 'gaming', icon: UsersIcon },
-  { label: 'Education', value: 'education', icon: ClockIcon },
-  { label: 'Entertainment', value: 'entertainment', icon: StarIcon },
-  { label: 'Business', value: 'business', icon: ChartBarIcon },
-  { label: 'Lifestyle', value: 'lifestyle', icon: UsersIcon },
-  { label: 'News', value: 'news', icon: ClockIcon },
-];
-
-const memberRanges = [
-  { label: 'Any size', value: 'any', min: 0, max: Infinity },
-  { label: '1K - 10K', value: '1k-10k', min: 1000, max: 10000 },
-  { label: '10K - 50K', value: '10k-50k', min: 10000, max: 50000 },
-  { label: '50K - 100K', value: '50k-100k', min: 50000, max: 100000 },
-  { label: '100K+', value: '100k+', min: 100000, max: Infinity },
-];
-
-const sortOptions = [
-  { label: 'Most Popular', value: 'popular' },
-  { label: 'Recently Added', value: 'recent' },
-  { label: 'Most Active', value: 'active' },
-  { label: 'Verified Only', value: 'verified' },
-];
+import { categories, memberRanges, sortOptions } from '../config/categories';
 
 const ChannelCard = ({ channel }) => (
   <motion.div
@@ -84,7 +58,7 @@ const ChannelCard = ({ channel }) => (
           {channel.category && (
             <span className="text-xs text-neutral-400 flex items-center gap-1">
               <HashtagIcon className="w-3 h-3" />
-              {channel.category}
+              {categories.find(c => c.value === channel.category)?.label || channel.category}
             </span>
           )}
         </div>
