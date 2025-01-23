@@ -127,33 +127,44 @@ export const getChannelMessages = async (channelIdentifier) => {
     });
     console.log('Chat info:', chatInfo);
 
-    // Delete webhook first
-    await deleteWebhook();
-
-    // Get updates with no timeout
-    const updates = await callBotApi('getUpdates', {
-      offset: -1,
-      limit: 100,
-      timeout: 0
+    // Get the most recent message in the channel
+    const recentMessage = await callBotApi('sendMessage', {
+      chat_id: chatInfo.id,
+      text: '🔄 Syncing messages...'
     });
-    
-    console.log('Raw updates:', updates);
+    console.log('Recent message:', recentMessage);
 
-    if (!updates || !Array.isArray(updates.result)) {
-      console.warn('No updates received');
-      return [];
+    // Try to get the last 100 messages before this one
+    const messageIds = Array.from(
+      { length: 100 }, 
+      (_, i) => recentMessage.message_id - (i + 1)
+    ).filter(id => id > 0);
+
+    // Get messages in batches of 10
+    const messages = [];
+    for (let i = 0; i < messageIds.length; i += 10) {
+      const batch = messageIds.slice(i, i + 10);
+      try {
+        const result = await callBotApi('getMessages', {
+          chat_id: chatInfo.id,
+          message_ids: batch
+        });
+        if (Array.isArray(result)) {
+          messages.push(...result);
+        }
+      } catch (err) {
+        console.warn('Error getting batch:', batch, err);
+      }
     }
 
-    // Filter messages from our target channel
-    const channelMessages = updates.result
-      .filter(update => {
-        const msg = update.message || update.channel_post;
-        return msg && msg.chat && msg.chat.id === chatInfo.id;
-      })
-      .map(update => update.message || update.channel_post);
+    // Delete our sync message
+    await callBotApi('deleteMessage', {
+      chat_id: chatInfo.id,
+      message_id: recentMessage.message_id
+    });
 
-    console.log('Filtered channel messages:', channelMessages);
-    return channelMessages;
+    console.log('Retrieved messages:', messages);
+    return messages.filter(Boolean);
   } catch (err) {
     console.error('Error getting channel messages:', err);
     console.error('Error details:', err.message);
