@@ -8,7 +8,8 @@ import {
   where,
   orderBy,
   Timestamp,
-  getFirestore 
+  getFirestore,
+  deleteDoc
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { getChannelInfo } from '../utils/telegramApi';
@@ -65,16 +66,22 @@ export const storeChannel = async (channelData, submitter) => {
 export const fetchChannels = async () => {
   try {
     const snapshot = await getDocs(channelsRef);
-    const channels = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-
-    return {
-      pending: channels.filter(channel => channel.status === 'pending'),
-      approved: channels.filter(channel => channel.status === 'approved'),
-      featured: channels.filter(channel => channel.featured)
+    const channels = {
+      pending: [],
+      approved: [],
+      featured: [],
+      rejected: []
     };
+
+    snapshot.forEach((doc) => {
+      const channel = { id: doc.id, ...doc.data() };
+      if (channel.featured) {
+        channels.featured.push(channel);
+      }
+      channels[channel.status].push(channel);
+    });
+
+    return channels;
   } catch (error) {
     console.error('Error fetching channels:', error);
     throw error;
@@ -84,35 +91,11 @@ export const fetchChannels = async () => {
 // Update channel status
 export const updateChannelStatus = async (channelId, status) => {
   try {
-    const channelRef = query(channelsRef, where('__name__', '==', channelId));
-    const snapshot = await getDocs(channelRef);
-    
-    if (!snapshot.empty) {
-      const doc = snapshot.docs[0];
-      let updateData = { status, updatedAt: Timestamp.now() };
-      
-      if (status === 'approved') {
-        try {
-          const channelInfo = await getChannelInfo(doc.data().username);
-          updateData.photoUrl = channelInfo?.photo_url || doc.data().photoUrl;
-          updateData.statistics = {
-            memberCount: channelInfo?.member_count || 0,
-            messageCount: channelInfo?.message_count || 0,
-            lastMessageDate: channelInfo?.last_message_date || null,
-            title: channelInfo?.title || doc.data().name,
-            description: channelInfo?.description || doc.data().description,
-            inviteLink: channelInfo?.invite_link || null
-          };
-        } catch (err) {
-          console.error('Error fetching updated channel info:', err);
-          // Continue with status update even if channel info fetch fails
-        }
-      }
-      
-      await updateDoc(doc.ref, updateData);
-      return { id: doc.id, ...doc.data(), ...updateData };
-    }
-    throw new Error('Channel not found');
+    const channelRef = doc(channelsRef, channelId);
+    await updateDoc(channelRef, {
+      status,
+      updatedAt: Timestamp.now()
+    });
   } catch (error) {
     console.error('Error updating channel status:', error);
     throw error;
@@ -122,29 +105,16 @@ export const updateChannelStatus = async (channelId, status) => {
 // Toggle channel feature status
 export const toggleChannelFeature = async (channelId) => {
   try {
-    const channelRef = query(channelsRef, where('__name__', '==', channelId));
-    const snapshot = await getDocs(channelRef);
+    const channelRef = doc(channelsRef, channelId);
+    const channelDoc = await getDocs(query(channelsRef, where('__name__', '==', channelId)));
     
-    if (!snapshot.empty) {
-      const doc = snapshot.docs[0];
-      const featured = !doc.data().featured;
-      
-      // Refresh statistics when featuring a channel
-      const channelInfo = await getChannelInfo(doc.data().username);
-      const updateData = {
-        featured,
-        updatedAt: Timestamp.now(),
-        statistics: {
-          memberCount: channelInfo.member_count || 0,
-          messageCount: channelInfo.message_count || 0,
-          lastMessageDate: channelInfo.last_message_date || null
-        }
-      };
-      
-      await updateDoc(doc.ref, updateData);
-      return { id: doc.id, ...doc.data(), ...updateData };
+    if (!channelDoc.empty) {
+      const channel = channelDoc.docs[0].data();
+      await updateDoc(channelRef, {
+        featured: !channel.featured,
+        updatedAt: Timestamp.now()
+      });
     }
-    throw new Error('Channel not found');
   } catch (error) {
     console.error('Error toggling channel feature:', error);
     throw error;
@@ -154,11 +124,11 @@ export const toggleChannelFeature = async (channelId) => {
 // Add toggle verified status
 export const toggleChannelVerified = async (channelId) => {
   try {
-    const channelRef = doc(db, 'channels', channelId);
-    const channelSnap = await getDocs(query(channelsRef, where('__name__', '==', channelId)));
+    const channelRef = doc(channelsRef, channelId);
+    const channelDoc = await getDocs(query(channelsRef, where('__name__', '==', channelId)));
     
-    if (!channelSnap.empty) {
-      const channel = { id: channelSnap.docs[0].id, ...channelSnap.docs[0].data() };
+    if (!channelDoc.empty) {
+      const channel = channelDoc.docs[0].data();
       await updateDoc(channelRef, {
         verified: !channel.verified,
         updatedAt: Timestamp.now()
@@ -173,7 +143,7 @@ export const toggleChannelVerified = async (channelId) => {
 // Update channel
 export const updateChannel = async (channelId, channelData) => {
   try {
-    const channelRef = doc(db, 'channels', channelId);
+    const channelRef = doc(channelsRef, channelId);
     await updateDoc(channelRef, {
       ...channelData,
       updatedAt: Timestamp.now()
@@ -294,6 +264,43 @@ export const updateSecondaryPromo = async (promoData) => {
     }
   } catch (error) {
     console.error('Error updating secondary promo:', error);
+    throw error;
+  }
+};
+
+export const removeChannel = async (channelId) => {
+  try {
+    const channelRef = doc(channelsRef, channelId);
+    await deleteDoc(channelRef);
+  } catch (error) {
+    console.error('Error removing channel:', error);
+    throw error;
+  }
+};
+
+export const updatePromoContent = async (promoData, isSecondary = false) => {
+  try {
+    const promoQuery = query(promoRef, where('isSecondary', '==', isSecondary));
+    const snapshot = await getDocs(promoQuery);
+    
+    if (!snapshot.empty) {
+      // Update existing promo
+      const promoDoc = snapshot.docs[0];
+      await updateDoc(doc(promoRef, promoDoc.id), {
+        ...promoData,
+        updatedAt: Timestamp.now()
+      });
+    } else {
+      // Create new promo
+      await addDoc(promoRef, {
+        ...promoData,
+        isSecondary,
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now()
+      });
+    }
+  } catch (error) {
+    console.error('Error updating promo content:', error);
     throw error;
   }
 }; 
