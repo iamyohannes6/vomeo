@@ -7,8 +7,7 @@ import {
   toggleChannelVerified,
   removeChannel,
   updatePromoContent,
-  getPromo,
-  getSecondaryPromo
+  getPromo
 } from '../services/channelService';
 import { getChannelInfo } from '../utils/telegramApi';
 
@@ -34,8 +33,8 @@ export const ChannelsProvider = ({ children }) => {
       
       const [channelsData, promoData, secondaryPromoData] = await Promise.all([
         fetchChannels(),
-        getPromo(),
-        getSecondaryPromo()
+        getPromo(false),
+        getPromo(true)
       ]);
       
       setChannels(channelsData);
