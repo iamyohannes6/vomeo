@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { getChannelMessages } from '../utils/telegramBot';
+import { initializeBot, getChannelMessages } from '../utils/telegramBot';
 
 const STORAGE_CHANNEL_ID = '-1002430549957';
 
@@ -19,8 +19,15 @@ export const ChannelsProvider = ({ children }) => {
       setLoading(true);
       setError(null);
 
-      const messages = await getChannelMessages(STORAGE_CHANNEL_ID);
+      // Initialize bot and get messages
+      const messages = await initializeBot();
       console.log('Fetched messages:', messages);
+
+      if (!messages || !Array.isArray(messages)) {
+        console.warn('No messages received');
+        setChannels({ pending: [], approved: [], featured: [] });
+        return;
+      }
 
       const parsedChannels = messages.reduce((acc, msg) => {
         try {
@@ -58,10 +65,6 @@ export const ChannelsProvider = ({ children }) => {
 
   useEffect(() => {
     fetchChannels();
-    
-    // Set up polling for updates
-    const interval = setInterval(fetchChannels, 30000); // Poll every 30 seconds
-    return () => clearInterval(interval);
   }, []);
 
   const value = {
