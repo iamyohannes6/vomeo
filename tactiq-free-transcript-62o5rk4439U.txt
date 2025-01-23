@@ -1,0 +1,404 @@
+# tactiq.io free youtube transcript
+# Creating User Registration System Sign Up And Login Using Telegram Login Widget - PHP MySQL HTML CSS
+# https://www.youtube.com/watch/62o5rk4439U
+
+00:00:15.120 hello programmers welcome to Gil
+00:00:17.680 geekify my name is s kohel and I hope
+00:00:20.720 you have a great time in this video I'm
+00:00:23.680 going to show you how to create a
+00:00:25.080 complete user registration system using
+00:00:27.359 telegram login widget from scratch I
+00:00:30.519 will use PHP and MySQL for the backend
+00:00:33.320 and database also HTML and CSS for the
+00:00:36.800 web-based user
+00:00:38.160 interface you can use this widget to
+00:00:40.360 sign up and log in users to your website
+00:00:43.559 the telegram login widget is a simple
+00:00:45.680 way to authorize users on your website
+00:00:49.000 we can use telegram login widget for
+00:00:51.039 external
+00:00:52.079 websites when you use telegram login for
+00:00:54.680 the first time their widget asks for
+00:00:56.520 your phone number and sends you a
+00:00:58.079 confirmation message via Telegram to
+00:01:00.280 authorize your
+00:01:01.480 browser once this is done you get a
+00:01:03.960 two-click login on every website that
+00:01:06.040 supports signing in with telegram
+00:01:08.640 logging in will send your telegram name
+00:01:10.720 username and your profile picture to the
+00:01:12.920 website owner your phone number remains
+00:01:16.119 hidden the website can also request
+00:01:18.720 permission to send you messages from
+00:01:20.280 their
+00:01:25.000 bot to use the telegram login widget
+00:01:27.960 you'll need a telegram bot so let's
+00:01:29.960 create
+00:01:31.640 one I'm using the telegram desktop
+00:01:34.360 application you can do all these things
+00:01:36.320 with mobile devices or the web version
+00:01:38.680 to create a telegram bot just open bot
+00:01:41.119 father then start the
+00:01:44.520 bot you have some commands to manage
+00:01:47.000 your Bots let's create a new bot add
+00:01:49.960 your bot name here it can be your brand
+00:01:52.040 or website name I use login with PHP as
+00:01:55.680 my bot
+00:01:58.079 name and this is the user name of your
+00:02:00.399 Bot the username is also the URL of your
+00:02:02.799 Bot I use Gil geekify login bot for it
+00:02:06.399 as telegram says you should use a bot
+00:02:08.318 word at the end of Bot
+00:02:13.680 usernames okay your Bot has been created
+00:02:16.440 it has a URL and access token for HTTP
+00:02:27.120 API you can edit your Bot with these
+00:02:29.440 commands
+00:02:40.920 we need this access token in the backend
+00:02:45.959 process you can edit your Bot
+00:02:47.920 information with these
+00:02:49.720 options let's add a profile picture for
+00:02:52.239 this bot I strongly recommend that the
+00:02:55.200 profile picture of the bot you use for
+00:02:57.000 authorization corresponds with your
+00:02:58.840 website's logo and that the bot's name
+00:03:01.040 reflects that
+00:03:08.959 connection okay now my bot has a profile
+00:03:27.400 picture to use the telegram login widget
+00:03:30.200 you should link your website's domain to
+00:03:31.959 your telegram
+00:03:39.720 bot and this is how you can do
+00:03:45.599 this very well now we have a ready to
+00:03:48.319 use telegram
+00:03:53.519 bot now let's create a database and set
+00:03:56.280 up a table structure for it
+00:04:05.079 create a database with any name you
+00:04:06.840 desire I use telegram login as my
+00:04:09.680 database
+00:04:14.840 name for convenience inside the source
+00:04:17.639 code I will add a SQL backup for you and
+00:04:20.199 you can import it by importing table-
+00:04:23.280 structure. SQL file your table structure
+00:04:25.720 is automatically going to create
+00:04:33.140 [Music]
+00:04:36.840 okay now we have all the required
+00:04:38.479 columns we
+00:04:40.440 need this is official telegram
+00:04:42.880 documentation for the telegram login
+00:04:45.280 widget I want to get and store all the
+00:04:47.680 data from the telegram login widget
+00:04:49.759 telegram can return
+00:04:52.759 ID first
+00:04:54.880 name last
+00:04:56.880 name username
+00:04:59.960 photo
+00:05:02.160 URL offe and
+00:05:13.800 hash I created a column for each of the
+00:05:20.160 data in the telegram app last name
+00:05:23.280 username and profile picture are
+00:05:25.479 optional so I use null as their column
+00:05:27.800 default value
+00:05:36.440 very well now we have a ready to use
+00:05:38.400 database with a table
+00:05:40.600 structure let's create all files we
+00:05:45.240 need right here I added info about each
+00:05:47.960 file for you
+00:06:10.960 let's add db- config.php db- config.php
+00:06:16.000 file is my database connection with crud
+00:06:18.479 operation in an objectoriented
+00:06:23.199 style you can get it from my GitHub page
+00:06:42.639 okay now let's connect to the database I
+00:06:44.960 have a video about how to create PHP
+00:06:47.240 objectoriented crud system using PDO
+00:06:49.880 extension and mySQL database from
+00:06:52.240 scratch you can watch it
+00:07:10.759 also I'm adding style. CSS inside the
+00:07:13.680 assets folder
+00:07:30.879 let's start coding with the login.php
+00:07:39.919 file first I create a user interface and
+00:07:42.800 then I add the telegram login widget
+00:07:44.800 inside the login page
+00:08:09.710 [Music]
+00:08:33.320 let's open this file in the
+00:08:45.200 browser
+00:08:55.560 okay now I will add some
+00:08:58.440 CSS e
+00:09:47.279 very nice in the next steps I want to
+00:09:49.360 add the telegram login widget right
+00:09:56.839 here now let's create a user interface
+00:09:59.440 for the user page I mean the user.php
+00:10:05.800 file first let me clone the login page
+00:10:08.680 code for the user page on this page I
+00:10:11.959 want to display logged in user data for
+00:10:13.920 users who logged into my
+00:10:18.399 website now I use data words as a
+00:10:21.519 placeholder for example I want to say
+00:10:24.000 hello to a first name and last
+00:10:27.200 name I'm using Place beard API to
+00:10:30.000 display random images as a profile
+00:10:32.079 picture place beard is an image
+00:10:33.839 placeholder
+00:10:40.839 API I'm adding some data from a user and
+00:10:43.560 a telegram link with the username on the
+00:10:45.519 user
+00:10:54.839 page and a log out button
+00:11:09.880 now let's check this
+00:11:14.120 page
+00:11:23.320 well I will add some
+00:11:28.240 CSS e
+00:11:58.530 [Music]
+00:12:08.760 very
+00:12:13.399 well in the next steps I will add the
+00:12:16.240 logged in users real data instead of
+00:12:18.399 these data
+00:12:27.839 words okay now let's add the telegram
+00:12:30.440 login widget to the login
+00:12:46.600 page this script is the official
+00:12:48.920 telegram login widget you should add it
+00:12:51.120 everywhere you want to display the login
+00:12:52.880 widget button
+00:13:01.560 you should add your telegram bot
+00:13:03.040 username right here I will add it from a
+00:13:05.279 PHP constant named bot username in the
+00:13:08.720 off. PHP when a user tries to log in the
+00:13:12.000 telegram login widget is going to get
+00:13:13.920 user data from the telegram server and
+00:13:16.040 sends these data to off. PHP file as get
+00:13:26.079 parameters let's start the PHP codes
+00:13:29.720 I want to use sessions so in the first
+00:13:31.760 line of codes I should start the
+00:13:41.279 session I want to display the login page
+00:13:43.959 only to the users that have not logged
+00:13:45.680 in yet so I defined an if
+00:13:52.839 statement and I Define a constant for
+00:13:55.160 the telegram bot username
+00:14:02.800 I echo my telegram bot username right
+00:14:05.000 here and it's my telegram bot username
+00:14:07.279 you should add your telegram bot
+00:14:08.720 username
+00:14:12.560 here okay now let's code the off. PHP
+00:14:15.920 file in this file I should Define how
+00:14:18.040 telegram authorization works also how my
+00:14:20.560 user authentication
+00:14:23.040 works but before it let's check the
+00:14:25.560 login page nice when you see the
+00:14:27.920 telegram login WI it means everything
+00:14:30.079 works fine otherwise it shows an error
+00:14:33.680 here is my telegram bot information
+00:14:35.959 domain profile picture and bot
+00:14:48.760 [Music]
+00:14:53.279 name okay now let's define telegram
+00:14:55.839 authorization and user Authentication
+00:14:59.360 same as the login page first I start the
+00:15:02.160 session and Define who can see this
+00:15:13.000 page I import the database connection
+00:15:15.600 and class to create a new user on the
+00:15:17.560 database and update the user from the
+00:15:20.040 database I Define a constant to add your
+00:15:22.519 telegram bot token right here and I
+00:15:24.720 forced the off page to get hash from get
+00:15:26.880 parameters
+00:15:33.639 I'm adding my telegram bot token right
+00:15:40.079 here in the telegram documentation there
+00:15:43.079 is a sample PHP code for checking
+00:15:45.440 authorization and receiving data about a
+00:15:47.680 logged in
+00:15:55.920 user there's a function named check
+00:15:58.279 telegram off authorization without any
+00:16:00.240 change I just copy this code and use it
+00:16:02.680 in my telegram authorization section
+00:16:33.839 now I Define my custom user
+00:16:35.480 authentication
+00:16:49.519 function I want when a user tries to log
+00:16:52.079 in into my website using the telegram
+00:16:54.079 login widget after a successful
+00:16:56.240 authorization from the telegram I will
+00:16:58.360 check whether whether the user exists in
+00:17:00.079 my database or
+00:17:15.480 not if the user does not exist in my
+00:17:18.160 database I create a new user and if the
+00:17:20.280 user exists in my database I update the
+00:17:22.520 user data this makes me always have
+00:17:25.319 updated users with their latest telegram
+00:17:27.559 data in the database
+00:17:40.840 [Music]
+00:17:45.679 for example when a user changes his
+00:17:47.760 telegram name or username after some
+00:17:49.919 time this data will be updated
+00:17:51.799 automatically upon the next login to my
+00:17:53.960 website
+00:18:06.880 so I want to define a user
+00:18:08.159 authentication function with three
+00:18:09.840 nested functions inside it create user
+00:18:13.200 function update user function and check
+00:18:15.440 user function
+00:18:32.799 I Define a function named check user
+00:18:34.760 exists in this function by the telegram
+00:18:37.080 unique user ID I'm going to check
+00:18:39.280 whether the user exists in my database
+00:18:41.480 or
+00:18:54.159 not and I Define the condition for new
+00:18:56.720 user and existing user when the user
+00:18:59.760 does not exist in the database I run
+00:19:01.919 create new user function and when the
+00:19:03.840 user exists in the database I run the
+00:19:06.039 update user
+00:19:16.559 function at the end of the user
+00:19:18.520 authentication function I set sessions
+00:19:20.840 for a logged in user a true value for
+00:19:23.120 the logged in key and the telegram ID as
+00:19:25.679 a value for the telegram ID key in the
+00:19:28.960 telegram application the telegram ID is
+00:19:31.559 unique for each telegram user
+00:20:02.640 now let's run these functions with a tri
+00:20:04.480 catch block first I run the check
+00:20:06.320 telegram authorization function and if
+00:20:08.320 it was successful I run the user
+00:20:10.120 authentication
+00:20:18.080 [Music]
+00:20:23.240 function and in the last step I redirect
+00:20:26.240 the user to the user page
+00:20:30.520 okay now let's make a real sign up using
+00:20:32.679 the telegram login
+00:20:37.679 widget I add my phone number then
+00:20:40.000 telegram sends me a login
+00:20:46.840 request when I confirm that request
+00:20:49.400 telegram authorizes me to login into the
+00:20:51.559 external website
+00:21:04.840 very nice there is no error with my
+00:21:06.880 off-page which means the telegram
+00:21:08.760 authorization and my user authentication
+00:21:10.960 functions working fine let's check the
+00:21:13.880 database table as you can see the new
+00:21:15.919 user has been created
+00:21:17.799 successfully it means I'm currently
+00:21:19.799 logged into the website and sessions are
+00:21:22.000 created
+00:21:27.279 well now let's change these data words
+00:21:30.000 with the real logged in user
+00:21:42.120 data let's add PHP codes for the login
+00:21:45.240 page
+00:21:59.320 first I should start the
+00:22:08.159 session with an if statement I specify
+00:22:11.120 that only the logged in user can view
+00:22:12.960 this
+00:22:13.960 page I import the database Connection in
+00:22:16.840 class because I want to select the
+00:22:18.360 logged in user data from the
+00:22:27.279 database and this is how I select the
+00:22:29.640 current loged in user data from the
+00:22:31.400 database by unique telegram ID
+00:22:37.360 session for better and more
+00:22:39.600 understanding I add some comment codes
+00:22:41.440 to display all of the selected user data
+00:22:43.559 for you
+00:23:01.360 it's all of the selected user data from
+00:23:03.240 the database by telegram ID
+00:23:11.960 session and this is how you can check
+00:23:14.120 all of the PHP
+00:23:19.919 sessions as you can see we have a logged
+00:23:22.240 in key with a true or one value and a
+00:23:24.640 telegram ID key with a unique telegram
+00:23:27.039 ID of the currently logged
+00:23:28.960 user both of these sessions are created
+00:23:31.440 on the off page off.
+00:23:55.039 PHP okay in this step I will Define
+00:23:57.720 clean variable from selected user data
+00:24:22.410 [Music]
+00:24:38.600 as I said before in the telegram
+00:24:40.600 application last name username and
+00:24:43.320 profile picture are optional so I use
+00:24:45.640 null as their column default value
+00:24:58.440 and in this step with some conditions I
+00:25:00.679 Define how and when the optional values
+00:25:02.600 going to display or not display I use
+00:25:05.679 the PHP is under scorel function to
+00:25:07.840 handle my
+00:25:20.440 conditions for example if a telegram
+00:25:23.080 user does not have a profile picture or
+00:25:25.200 last name or username I Define how these
+00:25:27.799 values should display or not
+00:25:42.600 display it is better to say when a
+00:25:44.799 telegram user does not have a profile
+00:25:46.919 picture I display nothing and when the
+00:25:48.840 user has a profile picture I display
+00:25:51.440 it all these modes are implemented by
+00:25:54.159 combining HTML and PHP
+00:26:13.799 I have an HTML variable and by
+00:26:16.080 conditions I assign new HTML codes to it
+00:26:19.840 in php. equal characters mean
+00:26:22.320 concatenating assignment operator
+00:26:42.520 okay now let's Echo the HTML variable at
+00:26:45.039 the right
+00:26:56.880 place it's time time to check the user
+00:27:01.600 page very nice as you can see all of the
+00:27:04.559 selected user data are in their right
+00:27:18.679 place let me clean up this cat a bit
+00:27:40.880 the PHP time function Returns the
+00:27:42.919 current time as a Unix Tim stamp and
+00:27:45.080 this is how you can make no cache images
+00:27:46.919 on the client side also by this trick
+00:27:49.159 you can make no cache files like CSS or
+00:27:52.559 JavaScript so in my database for each
+00:27:55.320 user I have a profile picture from the
+00:27:57.480 telegram account a username with a link
+00:27:59.679 to the telegram by the URL t. me/
+00:28:06.679 username it's my telegram account in the
+00:28:09.399 next steps for testing I will sign up
+00:28:11.600 for my website with another telegram
+00:28:15.559 account and I have a log out button
+00:28:17.919 right
+00:28:25.600 here let's make a logout script
+00:28:44.799 I just kill all of the sessions and
+00:28:46.519 redirect the user to the login
+00:28:52.720 page let's check it
+00:28:58.240 very good and this is how my website
+00:29:00.399 handles login and logout actions for
+00:29:10.680 [Music]
+00:29:20.880 users now I will change my telegram info
+00:29:23.840 such as name username and profile
+00:29:26.159 picture and I will show you how my site
+00:29:28.440 and database automatically update with
+00:29:30.519 the new
+00:29:47.760 data as you can see the profile picture
+00:29:50.480 has been changed without updating my
+00:29:52.320 database because the telegram profile
+00:29:54.440 picture system has a unique link for
+00:29:56.360 each user
+00:30:08.240 according to the functions I coded in
+00:30:09.880 the off. PHP file when a user updates
+00:30:12.679 the telegram info in the next login into
+00:30:15.080 my website during the authentication
+00:30:17.000 process I update the user info with the
+00:30:18.960 new data on the database
+00:30:29.240 by the conditions I coded to display
+00:30:31.159 data on the user page you will see only
+00:30:33.399 existing data
+00:31:14.639 when you use the telegram login widget
+00:31:16.760 telegram is going to create some cookies
+00:31:18.840 on your web
+00:31:19.919 browser these cookies are about the
+00:31:22.159 telegram user authorization you can
+00:31:24.279 terminate the login session in your
+00:31:25.919 telegram app also so you can remove it
+00:31:29.480 manually now I try to login into my
+00:31:32.000 website using another telegram account
+00:31:34.240 and in the last of this video I will
+00:31:36.200 show you how to terminate the login
+00:31:37.880 session in the telegram application
+00:31:58.559 as you can see a new user has been
+00:32:00.240 created on the
+00:32:17.440 database and this is how you can
+00:32:19.360 terminate the login session from the
+00:32:21.000 telegram
+00:32:22.159 application very
+00:32:25.559 nice if you enjoy my content please like
+00:32:28.440 this video click the Subscribe button
+00:32:30.679 and turn on notification for future
+00:32:32.600 videos also if you have any questions
+00:32:34.799 about this video please comment it for
+00:32:36.600 me thank you for watching this video now
+00:32:38.840 let's do some
+00:32:42.919 dancing try to stop me
+00:32:47.230 [Music]
+00:32:56.559 now try
+00:32:58.440 la
