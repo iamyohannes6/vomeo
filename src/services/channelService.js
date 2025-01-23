@@ -1,113 +1,113 @@
 import { 
-  collection, 
-  addDoc, 
-  getDocs, 
-  updateDoc, 
-  doc, 
-  query, 
+  collection,
+  addDoc,
+  getDocs,
+  updateDoc,
+  doc,
+  query,
   where,
   orderBy,
-  serverTimestamp 
+  Timestamp,
+  getFirestore 
 } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { db } from '../config/firebase';
 
-const CHANNELS_COLLECTION = 'channels';
+// Collection reference
+const channelsRef = collection(db, 'channels');
 
-// Store a new channel submission
+// Store a new channel
 export const storeChannel = async (channelData) => {
   try {
-    const docRef = await addDoc(collection(db, CHANNELS_COLLECTION), {
+    const docRef = await addDoc(channelsRef, {
       ...channelData,
       status: 'pending',
       featured: false,
       verified: false,
-      submittedAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
+      submittedAt: Timestamp.now(),
+      updatedAt: Timestamp.now()
     });
-    
-    console.log('Channel stored with ID:', docRef.id);
     return { id: docRef.id, ...channelData };
-  } catch (err) {
-    console.error('Error storing channel:', err);
-    throw err;
+  } catch (error) {
+    console.error('Error storing channel:', error);
+    throw error;
   }
 };
 
 // Fetch all channels
 export const fetchChannels = async () => {
   try {
-    const channelsRef = collection(db, CHANNELS_COLLECTION);
     const snapshot = await getDocs(channelsRef);
-    
     const channels = {
       pending: [],
       approved: [],
-      featured: []
+      featured: [],
+      rejected: []
     };
 
-    snapshot.forEach(doc => {
+    snapshot.forEach((doc) => {
       const channel = { id: doc.id, ...doc.data() };
-      
-      // Add to appropriate lists
-      if (channel.status === 'pending') {
-        channels.pending.push(channel);
-      } else if (channel.status === 'approved') {
-        channels.approved.push(channel);
-        if (channel.featured) {
-          channels.featured.push(channel);
-        }
+      if (channel.featured) {
+        channels.featured.push(channel);
       }
+      channels[channel.status].push(channel);
     });
 
-    console.log('Fetched channels:', channels);
     return channels;
-  } catch (err) {
-    console.error('Error fetching channels:', err);
-    throw err;
+  } catch (error) {
+    console.error('Error fetching channels:', error);
+    throw error;
   }
 };
 
 // Update channel status
 export const updateChannelStatus = async (channelId, status) => {
   try {
-    const channelRef = doc(db, CHANNELS_COLLECTION, channelId);
+    const channelRef = doc(db, 'channels', channelId);
     await updateDoc(channelRef, {
       status,
-      updatedAt: serverTimestamp()
+      updatedAt: Timestamp.now()
     });
-    
-    console.log('Updated channel status:', channelId, status);
-    return { id: channelId, status };
-  } catch (err) {
-    console.error('Error updating channel status:', err);
-    throw err;
+  } catch (error) {
+    console.error('Error updating channel status:', error);
+    throw error;
   }
 };
 
 // Toggle channel feature status
 export const toggleChannelFeature = async (channelId) => {
   try {
-    const channelRef = doc(db, CHANNELS_COLLECTION, channelId);
-    const snapshot = await getDocs(query(channelRef));
-    const channel = snapshot.data();
+    const channelRef = doc(db, 'channels', channelId);
+    const snapshot = await getDocs(query(channelsRef, where('id', '==', channelId)));
+    const channel = snapshot.docs[0].data();
     
     await updateDoc(channelRef, {
       featured: !channel.featured,
-      updatedAt: serverTimestamp()
+      updatedAt: Timestamp.now()
     });
-    
-    console.log('Toggled channel feature:', channelId);
-    return { id: channelId, featured: !channel.featured };
-  } catch (err) {
-    console.error('Error toggling channel feature:', err);
-    throw err;
+  } catch (error) {
+    console.error('Error toggling channel feature:', error);
+    throw error;
+  }
+};
+
+// Update channel
+export const updateChannel = async (channelId, channelData) => {
+  try {
+    const channelRef = doc(db, 'channels', channelId);
+    await updateDoc(channelRef, {
+      ...channelData,
+      updatedAt: Timestamp.now()
+    });
+  } catch (error) {
+    console.error('Error updating channel:', error);
+    throw error;
   }
 };
 
 // Get featured channels
 export const getFeaturedChannels = async () => {
   try {
-    const channelsRef = collection(db, CHANNELS_COLLECTION);
+    const channelsRef = collection(db, 'channels');
     const q = query(
       channelsRef,
       where('status', '==', 'approved'),
