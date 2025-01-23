@@ -10,6 +10,15 @@ export default defineConfig({
     }
   },
   build: {
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom', 'firebase/app', 'firebase/firestore', 'firebase/auth'],
+          ui: ['@heroicons/react', 'framer-motion']
+        }
+      }
+    },
     commonjsOptions: {
       include: [/node_modules/],
       transformMixedEsModules: true
