@@ -1,7 +1,7 @@
 const BOT_TOKEN = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
-const STORAGE_CHANNEL_ID = import.meta.env.VITE_TELEGRAM_STORAGE_CHANNEL;
+const STORAGE_CHANNEL_ID = "-1002430549957"; // Use the numeric ID directly
 
-if (!BOT_TOKEN || !STORAGE_CHANNEL_ID) {
+if (!BOT_TOKEN) {
   console.error('Missing required environment variables');
 }
 
@@ -41,7 +41,7 @@ Description: ${channel.description}`;
 
 // Parse channel data from message
 const parseChannelMessage = (message) => {
-  if (!message.text?.startsWith('#channel_submission')) return null;
+  if (!message?.text?.startsWith('#channel_submission')) return null;
   
   const lines = message.text.split('\n');
   const data = {};
@@ -72,92 +72,57 @@ const parseChannelMessage = (message) => {
 
 // Store a channel submission
 export const storeChannel = async (channelData) => {
-  const message = formatChannelMessage(channelData);
-  await callBotApi('sendMessage', {
-    chat_id: STORAGE_CHANNEL_ID,
-    text: message
-  });
-  return channelData;
+  try {
+    const message = formatChannelMessage(channelData);
+    const result = await callBotApi('sendMessage', {
+      chat_id: STORAGE_CHANNEL_ID,
+      text: message
+    });
+    console.log('Stored channel:', result);
+    return channelData;
+  } catch (err) {
+    console.error('Error storing channel:', err);
+    throw err;
+  }
 };
 
-// Update a channel's status
-export const updateChannelStatus = async (channelId, status) => {
-  // Get channel messages
-  const messages = await callBotApi('getUpdates', {
-    allowed_updates: ['message'],
-    offset: -100 // Get last 100 messages
-  });
-  
-  // Find the message with our channel
-  const targetMessage = messages.find(update => {
-    const channel = parseChannelMessage(update.message);
-    return channel?.id === channelId;
-  });
-  
-  if (!targetMessage) throw new Error('Channel not found');
-  
-  // Update the message
-  const channel = parseChannelMessage(targetMessage.message);
-  channel.status = status;
-  
-  await callBotApi('editMessageText', {
-    chat_id: STORAGE_CHANNEL_ID,
-    message_id: targetMessage.message.message_id,
-    text: formatChannelMessage(channel)
-  });
-  
-  return channel;
+// Get messages from channel
+const getChannelMessages = async () => {
+  try {
+    // Get recent messages
+    const updates = await callBotApi('getUpdates', {
+      offset: -1,
+      limit: 100,
+      timeout: 0,
+      allowed_updates: ['channel_post', 'message']
+    });
+    console.log('Updates:', updates);
+
+    // Filter channel messages
+    const messages = updates
+      .filter(update => update.channel_post || update.message)
+      .map(update => update.channel_post || update.message)
+      .filter(msg => msg.chat.id.toString() === STORAGE_CHANNEL_ID);
+
+    console.log('Filtered messages:', messages);
+    return messages;
+  } catch (err) {
+    console.error('Error getting channel messages:', err);
+    return [];
+  }
 };
 
 // Fetch all channels
 export const fetchChannels = async () => {
   try {
-    let allMessages = [];
-    let offset = 0;
-    let hasMore = true;
+    const messages = await getChannelMessages();
+    console.log('Got messages:', messages);
 
-    // Keep fetching messages until we get them all
-    while (hasMore) {
-      console.log('Fetching messages with offset:', offset);
-      const updates = await callBotApi('getUpdates', {
-        offset,
-        limit: 100,
-        allowed_updates: ['message', 'channel_post']
-      });
-
-      console.log('Received updates:', updates);
-
-      if (updates.length === 0) {
-        hasMore = false;
-        continue;
-      }
-
-      // Filter for messages from our storage channel
-      const channelMessages = updates
-        .filter(update => update.message?.chat.id === STORAGE_CHANNEL_ID)
-        .map(update => update.message);
-
-      allMessages = [...allMessages, ...channelMessages];
-      
-      // Update offset for next batch
-      offset = updates[updates.length - 1].update_id + 1;
-
-      // If we got less than 100 messages, we've reached the end
-      if (updates.length < 100) {
-        hasMore = false;
-      }
-    }
-
-    console.log('All messages:', allMessages);
-
-    // Parse channel submissions
-    const channels = allMessages
-      .filter(msg => msg.text?.startsWith('#channel_submission'))
+    const channels = messages
       .map(msg => parseChannelMessage(msg))
       .filter(Boolean);
 
     console.log('Parsed channels:', channels);
-    
     return channels;
   } catch (err) {
     console.error('Error fetching channels:', err);
@@ -165,29 +130,65 @@ export const fetchChannels = async () => {
   }
 };
 
+// Update a channel's status
+export const updateChannelStatus = async (channelId, status) => {
+  try {
+    // Get channel messages
+    const messages = await getChannelMessages();
+    console.log('Found messages:', messages);
+    
+    // Find the message with our channel
+    const targetMessage = messages.find(msg => {
+      const channel = parseChannelMessage(msg);
+      return channel?.id === channelId;
+    });
+    
+    if (!targetMessage) throw new Error('Channel not found');
+    
+    // Update the message
+    const channel = parseChannelMessage(targetMessage);
+    channel.status = status;
+    
+    const result = await callBotApi('editMessageText', {
+      chat_id: STORAGE_CHANNEL_ID,
+      message_id: targetMessage.message_id,
+      text: formatChannelMessage(channel)
+    });
+
+    console.log('Updated channel status:', result);
+    return channel;
+  } catch (err) {
+    console.error('Error updating channel status:', err);
+    throw err;
+  }
+};
+
 // Toggle channel feature status
 export const toggleChannelFeature = async (channelId) => {
-  // Similar to updateChannelStatus but toggles the featured flag
-  const messages = await callBotApi('getUpdates', {
-    allowed_updates: ['message'],
-    offset: -100
-  });
-  
-  const targetMessage = messages.find(update => {
-    const channel = parseChannelMessage(update.message);
-    return channel?.id === channelId;
-  });
-  
-  if (!targetMessage) throw new Error('Channel not found');
-  
-  const channel = parseChannelMessage(targetMessage.message);
-  channel.featured = !channel.featured;
-  
-  await callBotApi('editMessageText', {
-    chat_id: STORAGE_CHANNEL_ID,
-    message_id: targetMessage.message.message_id,
-    text: formatChannelMessage(channel)
-  });
-  
-  return channel;
+  try {
+    const messages = await getChannelMessages();
+    console.log('Found messages for feature toggle:', messages);
+    
+    const targetMessage = messages.find(msg => {
+      const channel = parseChannelMessage(msg);
+      return channel?.id === channelId;
+    });
+    
+    if (!targetMessage) throw new Error('Channel not found');
+    
+    const channel = parseChannelMessage(targetMessage);
+    channel.featured = !channel.featured;
+    
+    const result = await callBotApi('editMessageText', {
+      chat_id: STORAGE_CHANNEL_ID,
+      message_id: targetMessage.message_id,
+      text: formatChannelMessage(channel)
+    });
+
+    console.log('Toggled channel feature:', result);
+    return channel;
+  } catch (err) {
+    console.error('Error toggling channel feature:', err);
+    throw err;
+  }
 }; 
