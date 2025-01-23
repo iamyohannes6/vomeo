@@ -15,45 +15,43 @@ const Login = () => {
       return;
     }
 
-    if (!BOT_USERNAME) return;
-
-    // Only set up auth callback once
-    if (!window.onTelegramAuth) {
-      window.onTelegramAuth = (user) => {
-        if (user) {
-          login(user);
-          navigate('/');
-        }
-      };
+    if (!BOT_USERNAME) {
+      console.error('Bot username not configured');
+      return;
     }
 
-    // Only create and append script once
-    if (!scriptRef.current && containerRef.current && !containerRef.current.hasChildNodes()) {
+    // Only set up auth callback once
+    window.onTelegramAuth = (user) => {
+      if (user) {
+        login(user);
+        navigate('/');
+      }
+    };
+
+    // Only create and append script if it doesn't exist
+    if (!scriptRef.current && containerRef.current) {
       const script = document.createElement('script');
+      script.async = true;
       script.src = 'https://telegram.org/js/telegram-widget.js?22';
       script.setAttribute('data-telegram-login', BOT_USERNAME);
       script.setAttribute('data-size', 'large');
+      script.setAttribute('data-radius', '8');
       script.setAttribute('data-onauth', 'onTelegramAuth(user)');
       script.setAttribute('data-request-access', 'write');
-      script.async = true;
 
       scriptRef.current = script;
       containerRef.current.appendChild(script);
     }
 
-    // Cleanup only when component unmounts
+    // Cleanup function
     return () => {
-      const script = scriptRef.current;
-      const container = containerRef.current;
-
-      if (script && container) {
-        container.removeChild(script);
+      if (scriptRef.current && containerRef.current) {
+        containerRef.current.removeChild(scriptRef.current);
         scriptRef.current = null;
       }
-
       delete window.onTelegramAuth;
     };
-  }, []); // Only run once on mount
+  }, [user, login, navigate]); // Add dependencies
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-base-200">

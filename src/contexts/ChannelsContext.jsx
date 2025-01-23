@@ -318,15 +318,20 @@ export const ChannelsProvider = ({ children }) => {
   // Update promo content
   const updatePromo = async (promoData, isSecondary = false) => {
     try {
+      setLoading(true);
       await updatePromoContent(promoData, isSecondary);
+      // Update local state after successful save
       if (isSecondary) {
         setSecondaryPromo(promoData);
       } else {
         setPromo(promoData);
       }
+      return true;
     } catch (err) {
       console.error('Error updating promo:', err);
       throw err;
+    } finally {
+      setLoading(false);
     }
   };
 
