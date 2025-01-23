@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MegaphoneIcon } from '@heroicons/react/24/solid';
 
 const PromoEditor = ({ currentPromo, onSave }) => {
-  const [promo, setPromo] = useState(currentPromo || {
+  const [promo, setPromo] = useState({
     title: '',
     description: '',
     ctaLink: '',
@@ -10,9 +10,34 @@ const PromoEditor = ({ currentPromo, onSave }) => {
     image: ''
   });
 
+  // Update local state when currentPromo changes
+  useEffect(() => {
+    if (currentPromo) {
+      setPromo(currentPromo);
+    }
+  }, [currentPromo]);
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    // Ensure required fields are filled
+    if (!promo.title || !promo.description) {
+      return;
+    }
     onSave(promo);
+  };
+
+  const handleReset = () => {
+    if (currentPromo) {
+      setPromo(currentPromo);
+    } else {
+      setPromo({
+        title: '',
+        description: '',
+        ctaLink: '',
+        ctaText: '',
+        image: ''
+      });
+    }
   };
 
   return (
@@ -25,7 +50,7 @@ const PromoEditor = ({ currentPromo, onSave }) => {
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-400 mb-1">
-            Title
+            Title <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
@@ -39,7 +64,7 @@ const PromoEditor = ({ currentPromo, onSave }) => {
 
         <div>
           <label className="block text-sm font-medium text-gray-400 mb-1">
-            Description
+            Description <span className="text-red-500">*</span>
           </label>
           <textarea
             value={promo.description}
@@ -80,7 +105,7 @@ const PromoEditor = ({ currentPromo, onSave }) => {
 
         <div>
           <label className="block text-sm font-medium text-gray-400 mb-1">
-            Image URL (Optional)
+            Image URL
           </label>
           <input
             type="url"
@@ -89,18 +114,17 @@ const PromoEditor = ({ currentPromo, onSave }) => {
             className="w-full px-4 py-2 bg-base-200 border border-base-300 rounded-lg text-gray-100 focus:outline-none focus:border-primary"
             placeholder="https://..."
           />
+          {promo.image && (
+            <p className="text-xs text-gray-400 mt-1">
+              Preview: <a href={promo.image} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">View Image</a>
+            </p>
+          )}
         </div>
 
         <div className="flex justify-end space-x-3 pt-4">
           <button
             type="button"
-            onClick={() => setPromo(currentPromo || {
-              title: '',
-              description: '',
-              ctaLink: '',
-              ctaText: '',
-              image: ''
-            })}
+            onClick={handleReset}
             className="px-4 py-2 border border-base-300 rounded-lg text-gray-400 hover:text-gray-100 transition-colors"
           >
             Reset
