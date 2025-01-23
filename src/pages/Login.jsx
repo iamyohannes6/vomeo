@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { TELEGRAM_LOGIN_PARAMS } from '../config/telegram';
+import { BOT_USERNAME } from '../config/telegram';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -13,25 +13,20 @@ const Login = () => {
       return;
     }
 
-    // Handle Telegram login callback
-    window.TelegramLoginWidget = {
-      dataOnauth: (user) => {
-        login(user);
-        navigate('/');
-      }
+    // Define callback function in global scope
+    window.onTelegramAuth = function(user) {
+      console.log('Telegram auth response:', user);
+      login(user);
+      navigate('/');
     };
 
     // Load Telegram widget script
     const script = document.createElement('script');
     script.src = 'https://telegram.org/js/telegram-widget.js?22';
-    script.setAttribute('data-telegram-login', TELEGRAM_LOGIN_PARAMS.botId);
-    script.setAttribute('data-size', TELEGRAM_LOGIN_PARAMS.buttonSize);
-    script.setAttribute('data-radius', TELEGRAM_LOGIN_PARAMS.cornerRadius);
-    script.setAttribute('data-request-access', TELEGRAM_LOGIN_PARAMS.requestAccess);
-    script.setAttribute('data-userpic', TELEGRAM_LOGIN_PARAMS.showUserPhoto);
-    script.setAttribute('data-lang', TELEGRAM_LOGIN_PARAMS.lang);
-    script.setAttribute('data-auth-url', TELEGRAM_LOGIN_PARAMS.origin);
-    script.setAttribute('data-onauth', 'TelegramLoginWidget.dataOnauth(user)');
+    script.setAttribute('data-telegram-login', BOT_USERNAME);
+    script.setAttribute('data-size', 'large');
+    script.setAttribute('data-onauth', 'onTelegramAuth(user)');
+    script.setAttribute('data-request-access', 'write');
     script.async = true;
 
     // Add script to container
@@ -46,7 +41,7 @@ const Login = () => {
       if (container) {
         container.innerHTML = '';
       }
-      delete window.TelegramLoginWidget;
+      delete window.onTelegramAuth;
     };
   }, [user, login, navigate]);
 
