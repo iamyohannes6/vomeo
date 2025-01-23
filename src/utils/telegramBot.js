@@ -127,44 +127,34 @@ export const getChannelMessages = async (channelIdentifier) => {
     });
     console.log('Chat info:', chatInfo);
 
-    // Get the most recent message in the channel
-    const recentMessage = await callBotApi('sendMessage', {
-      chat_id: chatInfo.id,
-      text: '🔄 Syncing messages...'
+    // Delete webhook first to ensure we can use getUpdates
+    await deleteWebhook();
+
+    // Get updates with no timeout
+    const updates = await callBotApi('getUpdates', {
+      offset: -1,
+      limit: 100,
+      timeout: 0,
+      allowed_updates: ['message', 'channel_post']
     });
-    console.log('Recent message:', recentMessage);
+    
+    console.log('Raw updates:', updates);
 
-    // Try to get the last 100 messages before this one
-    const messageIds = Array.from(
-      { length: 100 }, 
-      (_, i) => recentMessage.message_id - (i + 1)
-    ).filter(id => id > 0);
-
-    // Get messages in batches of 10
-    const messages = [];
-    for (let i = 0; i < messageIds.length; i += 10) {
-      const batch = messageIds.slice(i, i + 10);
-      try {
-        const result = await callBotApi('getMessages', {
-          chat_id: chatInfo.id,
-          message_ids: batch
-        });
-        if (Array.isArray(result)) {
-          messages.push(...result);
-        }
-      } catch (err) {
-        console.warn('Error getting batch:', batch, err);
-      }
+    if (!updates || !Array.isArray(updates)) {
+      console.warn('No updates received');
+      return [];
     }
 
-    // Delete our sync message
-    await callBotApi('deleteMessage', {
-      chat_id: chatInfo.id,
-      message_id: recentMessage.message_id
-    });
+    // Filter messages from our target channel
+    const channelMessages = updates
+      .filter(update => {
+        const msg = update.message || update.channel_post;
+        return msg && msg.chat && msg.chat.id === chatInfo.id;
+      })
+      .map(update => update.message || update.channel_post);
 
-    console.log('Retrieved messages:', messages);
-    return messages.filter(Boolean);
+    console.log('Filtered channel messages:', channelMessages);
+    return channelMessages;
   } catch (err) {
     console.error('Error getting channel messages:', err);
     console.error('Error details:', err.message);
@@ -175,15 +165,6 @@ export const getChannelMessages = async (channelIdentifier) => {
 // Fetch all channels
 export const fetchChannels = async () => {
   try {
-    // First delete webhook
-    await deleteWebhook();
-
-    // Try to get messages directly from the channel
-    const result = await callBotApi('getChat', {
-      chat_id: STORAGE_CHANNEL
-    });
-    console.log('Channel info:', result);
-
     // Get messages from channel
     const messages = await getChannelMessages(STORAGE_CHANNEL);
     console.log('Got messages:', messages);
@@ -229,16 +210,22 @@ export const fetchChannels = async () => {
 export const updateChannelStatus = async (channelId, status) => {
   try {
     // Get channel messages
-    const messages = await getChannelMessages();
+    const messages = await getChannelMessages(STORAGE_CHANNEL);
     console.log('Found messages:', messages);
     
     // Find the message with our channel
     const targetMessage = messages.find(msg => {
-      const channel = parseChannelMessage(msg);
-      return channel?.id === channelId;
+      try {
+        const channel = parseChannelMessage(msg);
+        return channel && channel.id === channelId;
+      } catch (err) {
+        return false;
+      }
     });
     
-    if (!targetMessage) throw new Error('Channel not found');
+    if (!targetMessage) {
+      throw new Error('Channel not found');
+    }
     
     // Update the message
     const channel = parseChannelMessage(targetMessage);
@@ -261,16 +248,25 @@ export const updateChannelStatus = async (channelId, status) => {
 // Toggle channel feature status
 export const toggleChannelFeature = async (channelId) => {
   try {
-    const messages = await getChannelMessages();
+    // Get channel messages
+    const messages = await getChannelMessages(STORAGE_CHANNEL);
     console.log('Found messages for feature toggle:', messages);
     
+    // Find the message with our channel
     const targetMessage = messages.find(msg => {
-      const channel = parseChannelMessage(msg);
-      return channel?.id === channelId;
+      try {
+        const channel = parseChannelMessage(msg);
+        return channel && channel.id === channelId;
+      } catch (err) {
+        return false;
+      }
     });
     
-    if (!targetMessage) throw new Error('Channel not found');
+    if (!targetMessage) {
+      throw new Error('Channel not found');
+    }
     
+    // Update the message
     const channel = parseChannelMessage(targetMessage);
     channel.featured = !channel.featured;
     
