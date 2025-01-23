@@ -4,6 +4,7 @@ import {
   storeChannel, 
   updateChannelStatus, 
   toggleChannelFeature,
+  toggleChannelVerified,
   getPromo,
   updatePromo
 } from '../services/channelService';
@@ -101,6 +102,17 @@ export const ChannelsProvider = ({ children }) => {
     }
   };
 
+  const toggleVerified = async (channelId) => {
+    try {
+      await toggleChannelVerified(channelId);
+      const updatedChannels = await fetchChannels();
+      setChannels(updatedChannels);
+    } catch (err) {
+      console.error('Error toggling verified status:', err);
+      throw err;
+    }
+  };
+
   const updatePromoContent = async (promoData) => {
     try {
       const updatedPromo = await updatePromo(promoData);
@@ -121,6 +133,7 @@ export const ChannelsProvider = ({ children }) => {
     approveChannel,
     rejectChannel,
     toggleFeature,
+    toggleVerified,
     updatePromoContent
   };
 

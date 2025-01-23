@@ -24,13 +24,14 @@ const AdminDashboard = () => {
     error, 
     approveChannel, 
     rejectChannel, 
-    toggleFeature, 
-    updateChannel,
+    toggleFeature,
+    toggleVerified,
     updatePromoContent
   } = useChannels();
   const [activeTab, setActiveTab] = useState('pending');
   const [editingChannel, setEditingChannel] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [saveStatus, setSaveStatus] = useState('');
 
   // Add logging when channels change
   useEffect(() => {
@@ -84,16 +85,7 @@ const AdminDashboard = () => {
 
   const handleToggleVerified = async (channelId) => {
     try {
-      const channel = Object.values(channels)
-        .flat()
-        .find(c => c.id === channelId);
-      
-      if (channel) {
-        await updateChannel(channelId, {
-          ...channel,
-          verified: !channel.verified
-        });
-      }
+      await toggleVerified(channelId);
     } catch (err) {
       console.error('Error toggling verified status:', err);
     }
@@ -101,9 +93,14 @@ const AdminDashboard = () => {
 
   const handleSavePromo = async (promoData) => {
     try {
+      setSaveStatus('saving');
       await updatePromoContent(promoData);
+      setSaveStatus('saved');
+      setTimeout(() => setSaveStatus(''), 2000);
     } catch (err) {
       console.error('Error saving promo:', err);
+      setSaveStatus('error');
+      setTimeout(() => setSaveStatus(''), 3000);
     }
   };
 
@@ -137,7 +134,7 @@ const AdminDashboard = () => {
             <div className="mt-2 space-y-1">
               <p className="text-sm text-gray-400">Category: {channel.category}</p>
               <p className="text-sm text-gray-400">Submitted by: {channel.submittedBy}</p>
-              <p className="text-sm text-gray-400">Submitted at: {new Date(channel.submittedAt).toLocaleString()}</p>
+              <p className="text-sm text-gray-400">Submitted at: {new Date(channel.submittedAt?.toDate()).toLocaleString()}</p>
               {channel.description && (
                 <p className="text-sm text-gray-400 mt-2">{channel.description}</p>
               )}
@@ -310,7 +307,20 @@ const AdminDashboard = () => {
           {/* Content */}
           <div className="p-4 md:p-6">
             {activeTab === 'promo' ? (
-              <PromoEditor currentPromo={promo} onSave={handleSavePromo} />
+              <>
+                <PromoEditor currentPromo={promo} onSave={handleSavePromo} />
+                {saveStatus && (
+                  <div className={`mt-4 p-3 rounded-lg text-center ${
+                    saveStatus === 'saving' ? 'bg-primary/10 text-primary' :
+                    saveStatus === 'saved' ? 'bg-green-500/10 text-green-500' :
+                    'bg-red-500/10 text-red-500'
+                  }`}>
+                    {saveStatus === 'saving' ? 'Saving changes...' :
+                     saveStatus === 'saved' ? 'Changes saved successfully!' :
+                     'Error saving changes'}
+                  </div>
+                )}
+              </>
             ) : (
               renderChannelList(channels[activeTab])
             )}

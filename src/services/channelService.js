@@ -78,15 +78,36 @@ export const updateChannelStatus = async (channelId, status) => {
 export const toggleChannelFeature = async (channelId) => {
   try {
     const channelRef = doc(db, 'channels', channelId);
-    const snapshot = await getDocs(query(channelsRef, where('id', '==', channelId)));
-    const channel = snapshot.docs[0].data();
+    const channelSnap = await getDocs(query(channelsRef, where('__name__', '==', channelId)));
     
-    await updateDoc(channelRef, {
-      featured: !channel.featured,
-      updatedAt: Timestamp.now()
-    });
+    if (!channelSnap.empty) {
+      const channel = { id: channelSnap.docs[0].id, ...channelSnap.docs[0].data() };
+      await updateDoc(channelRef, {
+        featured: !channel.featured,
+        updatedAt: Timestamp.now()
+      });
+    }
   } catch (error) {
     console.error('Error toggling channel feature:', error);
+    throw error;
+  }
+};
+
+// Add toggle verified status
+export const toggleChannelVerified = async (channelId) => {
+  try {
+    const channelRef = doc(db, 'channels', channelId);
+    const channelSnap = await getDocs(query(channelsRef, where('__name__', '==', channelId)));
+    
+    if (!channelSnap.empty) {
+      const channel = { id: channelSnap.docs[0].id, ...channelSnap.docs[0].data() };
+      await updateDoc(channelRef, {
+        verified: !channel.verified,
+        updatedAt: Timestamp.now()
+      });
+    }
+  } catch (error) {
+    console.error('Error toggling channel verified status:', error);
     throw error;
   }
 };
