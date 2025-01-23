@@ -204,12 +204,13 @@ export const updatePromoContent = async (promoData, isSecondary = false) => {
     };
 
     const targetRef = isSecondary ? secondaryPromoRef : promoRef;
-    const existingPromo = await getPromo(isSecondary);
-
-    if (existingPromo) {
+    const querySnapshot = await getDocs(targetRef);
+    
+    if (!querySnapshot.empty) {
       // Update existing promo
-      await updateDoc(doc(targetRef, existingPromo.id), data);
-      return { id: existingPromo.id, ...data };
+      const promoDoc = querySnapshot.docs[0];
+      await updateDoc(doc(targetRef, promoDoc.id), data);
+      return { id: promoDoc.id, ...data };
     } else {
       // Create new promo
       const docRef = await addDoc(targetRef, {

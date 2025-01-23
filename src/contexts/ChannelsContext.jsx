@@ -141,14 +141,22 @@ export const ChannelsProvider = ({ children }) => {
   const handleUpdatePromo = async (promoData, isSecondary = false) => {
     try {
       setLoading(true);
-      await updatePromoContent(promoData, isSecondary);
+      setError(null);
+      
+      const updatedPromo = await updatePromoContent(promoData, isSecondary);
+      
+      // Update the correct promo state
       if (isSecondary) {
-        setSecondaryPromo(promoData);
+        setSecondaryPromo(updatedPromo);
       } else {
-        setPromo(promoData);
+        setPromo(updatedPromo);
       }
+      
+      // Reload all data to ensure consistency
+      await loadData();
     } catch (err) {
       console.error('Error updating promo:', err);
+      setError('Failed to update promotional content');
       throw err;
     } finally {
       setLoading(false);

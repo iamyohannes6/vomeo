@@ -9,6 +9,7 @@ const Login = () => {
   const scriptRef = useRef(null);
 
   useEffect(() => {
+    // Redirect if already logged in
     if (user) {
       navigate('/');
       return;
@@ -16,17 +17,15 @@ const Login = () => {
 
     if (!BOT_USERNAME) return;
 
-    // Only set up the auth callback once
-    if (!window.onTelegramAuth) {
-      window.onTelegramAuth = function(user) {
-        if (user) {
-          login(user);
-          navigate('/');
-        }
-      };
-    }
+    // Set up Telegram auth callback
+    window.onTelegramAuth = (user) => {
+      if (user) {
+        login(user);
+        navigate('/');
+      }
+    };
 
-    // Only create and append the script if it hasn't been added yet
+    // Add Telegram login widget
     if (!scriptRef.current) {
       const script = document.createElement('script');
       script.src = 'https://telegram.org/js/telegram-widget.js?22';
@@ -36,18 +35,16 @@ const Login = () => {
       script.setAttribute('data-request-access', 'write');
       script.async = true;
 
-      // Store reference to script
       scriptRef.current = script;
 
-      // Add script to container
       const container = document.getElementById('telegram-login');
       if (container && !container.hasChildNodes()) {
         container.appendChild(script);
       }
     }
 
+    // Cleanup
     return () => {
-      // Only clean up when component is unmounted
       if (scriptRef.current) {
         const container = document.getElementById('telegram-login');
         if (container) {
@@ -69,9 +66,7 @@ const Login = () => {
           </p>
         </div>
 
-        <div id="telegram-login" className="flex justify-center">
-          {/* Telegram login button will be inserted here */}
-        </div>
+        <div id="telegram-login" className="flex justify-center" />
 
         {!BOT_USERNAME && (
           <div className="text-center text-red-500 p-4 bg-red-500/10 rounded-lg">
