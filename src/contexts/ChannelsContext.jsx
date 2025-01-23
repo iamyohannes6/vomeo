@@ -6,7 +6,9 @@ import {
   toggleChannelFeature,
   toggleChannelVerified,
   getPromo,
-  updatePromo
+  getSecondaryPromo,
+  updatePromo,
+  updateSecondaryPromo
 } from '../services/channelService';
 
 const ChannelsContext = createContext();
@@ -19,31 +21,34 @@ export const ChannelsProvider = ({ children }) => {
     rejected: []
   });
   const [promo, setPromo] = useState(null);
+  const [secondaryPromo, setSecondaryPromo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch channels
+  // Fetch channels and promos
   useEffect(() => {
-    const loadChannels = async () => {
+    const loadData = async () => {
       try {
         setLoading(true);
-        const data = await fetchChannels();
-        setChannels(data);
+        const [channelsData, promoData, secondaryPromoData] = await Promise.all([
+          fetchChannels(),
+          getPromo(),
+          getSecondaryPromo()
+        ]);
         
-        // Also fetch promo content
-        const promoData = await getPromo();
+        setChannels(channelsData);
         setPromo(promoData);
-        
+        setSecondaryPromo(secondaryPromoData);
         setError(null);
       } catch (err) {
-        console.error('Error loading channels:', err);
-        setError('Failed to load channels');
+        console.error('Error loading data:', err);
+        setError('Failed to load data');
       } finally {
         setLoading(false);
       }
     };
 
-    loadChannels();
+    loadData();
   }, []);
 
   // Submit a new channel
@@ -113,11 +118,17 @@ export const ChannelsProvider = ({ children }) => {
     }
   };
 
-  const updatePromoContent = async (promoData) => {
+  const updatePromoContent = async (promoData, isSecondary = false) => {
     try {
-      const updatedPromo = await updatePromo(promoData);
-      setPromo(updatedPromo);
-      return updatedPromo;
+      if (isSecondary) {
+        const updatedPromo = await updateSecondaryPromo(promoData);
+        setSecondaryPromo(updatedPromo);
+        return updatedPromo;
+      } else {
+        const updatedPromo = await updatePromo(promoData);
+        setPromo(updatedPromo);
+        return updatedPromo;
+      }
     } catch (err) {
       console.error('Error updating promo:', err);
       throw err;
@@ -127,6 +138,7 @@ export const ChannelsProvider = ({ children }) => {
   const value = {
     channels,
     promo,
+    secondaryPromo,
     loading,
     error,
     submitChannel,

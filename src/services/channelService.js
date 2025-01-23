@@ -12,9 +12,10 @@ import {
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 
-// Collection reference
+// Collection references
 const channelsRef = collection(db, 'channels');
 const promoRef = collection(db, 'promo');
+const secondaryPromoRef = collection(db, 'secondaryPromo');
 
 // Store a new channel
 export const storeChannel = async (channelData) => {
@@ -167,6 +168,21 @@ export const getPromo = async () => {
   }
 };
 
+export const getSecondaryPromo = async () => {
+  try {
+    const querySnapshot = await getDocs(secondaryPromoRef);
+    const promos = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    // Return the most recent promo
+    return promos.sort((a, b) => b.updatedAt - a.updatedAt)[0] || null;
+  } catch (error) {
+    console.error('Error getting secondary promo:', error);
+    throw error;
+  }
+};
+
 export const updatePromo = async (promoData) => {
   try {
     const timestamp = Timestamp.now();
@@ -192,6 +208,35 @@ export const updatePromo = async (promoData) => {
     }
   } catch (error) {
     console.error('Error updating promo:', error);
+    throw error;
+  }
+};
+
+export const updateSecondaryPromo = async (promoData) => {
+  try {
+    const timestamp = Timestamp.now();
+    const data = {
+      ...promoData,
+      updatedAt: timestamp
+    };
+
+    // Get existing secondary promo
+    const existingPromo = await getSecondaryPromo();
+
+    if (existingPromo) {
+      // Update existing promo
+      await updateDoc(doc(secondaryPromoRef, existingPromo.id), data);
+      return { id: existingPromo.id, ...data };
+    } else {
+      // Create new promo
+      const docRef = await addDoc(secondaryPromoRef, {
+        ...data,
+        createdAt: timestamp
+      });
+      return { id: docRef.id, ...data };
+    }
+  } catch (error) {
+    console.error('Error updating secondary promo:', error);
     throw error;
   }
 }; 

@@ -6,7 +6,7 @@ import CompactChannelCard from '../components/CompactChannelCard';
 import PromoSection from '../components/PromoSection';
 
 const Home = () => {
-  const { channels, promo, loading, error } = useChannels();
+  const { channels, promo, secondaryPromo, loading, error } = useChannels();
   const [sortBy, setSortBy] = useState('newest');
   const [filterCategory, setFilterCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -53,8 +53,8 @@ const Home = () => {
       {/* Navigation remains unchanged */}
       
       <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
-        {/* Promo Section */}
-        {promo && <PromoSection promo={promo} />}
+        {/* Hero Promo Section */}
+        {promo && <PromoSection promo={promo} variant="hero" />}
 
         {/* Featured Channels */}
         {channels.featured && channels.featured.length > 0 && (
@@ -78,6 +78,9 @@ const Home = () => {
             </div>
           </div>
         )}
+
+        {/* Secondary Promo Section */}
+        {secondaryPromo && <PromoSection promo={secondaryPromo} variant="standard" />}
 
         {/* All Channels */}
         <div>

@@ -20,6 +20,7 @@ const AdminDashboard = () => {
   const { 
     channels, 
     promo,
+    secondaryPromo,
     loading, 
     error, 
     approveChannel, 
@@ -91,15 +92,15 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleSavePromo = async (promoData) => {
+  const handleSavePromo = async (promoData, isSecondary = false) => {
     try {
-      setSaveStatus('saving');
-      await updatePromoContent(promoData);
-      setSaveStatus('saved');
+      setSaveStatus(isSecondary ? 'saving-secondary' : 'saving');
+      await updatePromoContent(promoData, isSecondary);
+      setSaveStatus(isSecondary ? 'saved-secondary' : 'saved');
       setTimeout(() => setSaveStatus(''), 2000);
     } catch (err) {
       console.error('Error saving promo:', err);
-      setSaveStatus('error');
+      setSaveStatus(isSecondary ? 'error-secondary' : 'error');
       setTimeout(() => setSaveStatus(''), 3000);
     }
   };
@@ -307,20 +308,47 @@ const AdminDashboard = () => {
           {/* Content */}
           <div className="p-4 md:p-6">
             {activeTab === 'promo' ? (
-              <>
-                <PromoEditor currentPromo={promo} onSave={handleSavePromo} />
-                {saveStatus && (
-                  <div className={`mt-4 p-3 rounded-lg text-center ${
-                    saveStatus === 'saving' ? 'bg-primary/10 text-primary' :
-                    saveStatus === 'saved' ? 'bg-green-500/10 text-green-500' :
-                    'bg-red-500/10 text-red-500'
-                  }`}>
-                    {saveStatus === 'saving' ? 'Saving changes...' :
-                     saveStatus === 'saved' ? 'Changes saved successfully!' :
-                     'Error saving changes'}
-                  </div>
-                )}
-              </>
+              <div className="space-y-8">
+                {/* Hero Promo Editor */}
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-100 mb-4">Hero Promotional Content</h3>
+                  <PromoEditor 
+                    currentPromo={promo} 
+                    onSave={(data) => handleSavePromo(data, false)} 
+                  />
+                  {saveStatus.includes('saving') && !saveStatus.includes('secondary') && (
+                    <div className={`mt-4 p-3 rounded-lg text-center ${
+                      saveStatus === 'saving' ? 'bg-primary/10 text-primary' :
+                      saveStatus === 'saved' ? 'bg-green-500/10 text-green-500' :
+                      'bg-red-500/10 text-red-500'
+                    }`}>
+                      {saveStatus === 'saving' ? 'Saving changes...' :
+                       saveStatus === 'saved' ? 'Changes saved successfully!' :
+                       'Error saving changes'}
+                    </div>
+                  )}
+                </div>
+
+                {/* Secondary Promo Editor */}
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-100 mb-4">Secondary Promotional Content</h3>
+                  <PromoEditor 
+                    currentPromo={secondaryPromo} 
+                    onSave={(data) => handleSavePromo(data, true)}
+                  />
+                  {saveStatus.includes('secondary') && (
+                    <div className={`mt-4 p-3 rounded-lg text-center ${
+                      saveStatus === 'saving-secondary' ? 'bg-primary/10 text-primary' :
+                      saveStatus === 'saved-secondary' ? 'bg-green-500/10 text-green-500' :
+                      'bg-red-500/10 text-red-500'
+                    }`}>
+                      {saveStatus === 'saving-secondary' ? 'Saving changes...' :
+                       saveStatus === 'saved-secondary' ? 'Changes saved successfully!' :
+                       'Error saving changes'}
+                    </div>
+                  )}
+                </div>
+              </div>
             ) : (
               renderChannelList(channels[activeTab])
             )}
