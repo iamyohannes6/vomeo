@@ -87,7 +87,7 @@ export const storeChannel = async (channelData) => {
 };
 
 // Get messages from channel
-const getChannelMessages = async (channelId) => {
+export const getChannelMessages = async (channelId) => {
   try {
     // First verify we have access to the channel
     const chatInfo = await callBotApi('getChat', {
