@@ -1,5 +1,5 @@
 export const TELEGRAM_CONFIG = {
-  botToken: '7993463093:AAGZ_oSPTRjjDwurV5Kceo4Xq6A3ZdpW4lI',
+  botToken: import.meta.env.VITE_TELEGRAM_BOT_TOKEN,
   botUsername: 'vomeo_bot',
   redirectUrl: 'https://vomeo.netlify.app/auth/callback',
   origin: 'https://vomeo.netlify.app',
