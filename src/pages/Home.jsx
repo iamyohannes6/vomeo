@@ -6,18 +6,10 @@ import CompactChannelCard from '../components/CompactChannelCard';
 import PromoSection from '../components/PromoSection';
 
 const Home = () => {
-  const { channels, loading, error } = useChannels();
+  const { channels, promo, loading, error } = useChannels();
   const [sortBy, setSortBy] = useState('newest');
   const [filterCategory, setFilterCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-
-  // Mock promo data - this will come from admin panel later
-  const promoContent = {
-    title: "Discover Amazing Telegram Channels",
-    description: "Join our curated collection of the best Telegram channels. From tech to entertainment, we've got something for everyone.",
-    ctaLink: "/submit",
-    ctaText: "Submit Your Channel"
-  };
 
   // Filter and sort channels
   const filteredChannels = channels.approved?.filter(channel => {
@@ -34,7 +26,7 @@ const Home = () => {
       case 'subscribers':
         return (b.subscribers || 0) - (a.subscribers || 0);
       case 'newest':
-        return new Date(b.submittedAt) - new Date(a.submittedAt);
+        return new Date(b.submittedAt?.toDate()) - new Date(a.submittedAt?.toDate());
       default:
         return 0;
     }
@@ -62,7 +54,7 @@ const Home = () => {
       
       <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
         {/* Promo Section */}
-        <PromoSection promo={promoContent} />
+        {promo && <PromoSection promo={promo} />}
 
         {/* Featured Channels */}
         {channels.featured && channels.featured.length > 0 && (
