@@ -121,30 +121,34 @@ export const storeChannel = async (channelData) => {
 // Get messages from channel
 export const getChannelMessages = async (channelIdentifier) => {
   try {
-    // First resolve the channel ID
-    const channelId = await resolveChannelId(channelIdentifier);
-    console.log('Resolved channel ID:', channelId);
+    // First get chat info
+    const chatInfo = await callBotApi('getChat', {
+      chat_id: channelIdentifier
+    });
+    console.log('Chat info:', chatInfo);
 
-    // Get message history from channel
-    const result = await callBotApi('getUpdates', {
-      allowed_updates: ['message', 'channel_post'],
-      offset: -100,  // Get last 100 updates
+    // Delete webhook first
+    await deleteWebhook();
+
+    // Get updates with no timeout
+    const updates = await callBotApi('getUpdates', {
+      offset: -1,
       limit: 100,
       timeout: 0
     });
     
-    console.log('Raw updates:', result);
+    console.log('Raw updates:', updates);
 
-    if (!result || !Array.isArray(result)) {
+    if (!updates || !Array.isArray(updates.result)) {
       console.warn('No updates received');
       return [];
     }
 
     // Filter messages from our target channel
-    const channelMessages = result
+    const channelMessages = updates.result
       .filter(update => {
         const msg = update.message || update.channel_post;
-        return msg && msg.chat && msg.chat.id.toString() === channelId.toString();
+        return msg && msg.chat && msg.chat.id === chatInfo.id;
       })
       .map(update => update.message || update.channel_post);
 
@@ -163,6 +167,12 @@ export const fetchChannels = async () => {
     // First delete webhook
     await deleteWebhook();
 
+    // Try to get messages directly from the channel
+    const result = await callBotApi('getChat', {
+      chat_id: STORAGE_CHANNEL
+    });
+    console.log('Channel info:', result);
+
     // Get messages from channel
     const messages = await getChannelMessages(STORAGE_CHANNEL);
     console.log('Got messages:', messages);
@@ -174,12 +184,23 @@ export const fetchChannels = async () => {
 
     // Parse channel data from messages
     const channels = messages
-      .filter(msg => msg && msg.text && msg.text.startsWith('#channel_submission'))
+      .filter(msg => {
+        if (!msg || !msg.text) {
+          console.warn('Invalid message:', msg);
+          return false;
+        }
+        return msg.text.startsWith('#channel_submission');
+      })
       .map(msg => {
         try {
-          return parseChannelMessage(msg);
+          const channel = parseChannelMessage(msg);
+          if (!channel) {
+            console.warn('Failed to parse message:', msg);
+            return null;
+          }
+          return channel;
         } catch (err) {
-          console.warn('Failed to parse message:', msg);
+          console.warn('Error parsing message:', msg, err);
           return null;
         }
       })
