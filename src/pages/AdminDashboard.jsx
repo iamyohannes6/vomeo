@@ -12,11 +12,13 @@ import {
   ShieldCheckIcon,
 } from '@heroicons/react/24/solid';
 import { useAuth } from '../contexts/AuthContext';
+import { useChannels } from '../contexts/ChannelsContext';
 import ChannelEditModal from '../components/ChannelEditModal';
 import { verifyChannel, verifyChannelOwnership, getChannelStats } from '../utils/telegramApi';
 
 const AdminDashboard = () => {
   const { user } = useAuth();
+  const { channels, approveChannel, rejectChannel, toggleFeature, updateChannel } = useChannels();
   const [activeTab, setActiveTab] = useState('pending');
   const [activeActions, setActiveActions] = useState(null);
   const [editingChannel, setEditingChannel] = useState(null);
@@ -25,25 +27,6 @@ const AdminDashboard = () => {
   const [isVerifying, setIsVerifying] = useState(false);
 
   const closeActions = () => setActiveActions(null);
-
-  // Mock data for development - replace with real data later
-  const channels = {
-    pending: [
-      { id: 1, name: 'Tech News Daily', username: '@technews', category: 'Technology', subscribers: 5000, status: 'pending' },
-      { id: 2, name: 'Gaming Central', username: '@gamingcentral', category: 'Gaming', subscribers: 3000, status: 'pending' },
-    ],
-    approved: [
-      { id: 3, name: 'Crypto Updates', username: '@cryptoupdates', category: 'Cryptocurrency', subscribers: 10000, status: 'approved', featured: false },
-      { id: 5, name: 'Design Inspiration', username: '@designdaily', category: 'Design', subscribers: 15000, status: 'approved', featured: false },
-    ],
-    featured: [
-      { id: 6, name: 'AI News', username: '@ainews', category: 'Technology', subscribers: 25000, status: 'approved', featured: true },
-      { id: 7, name: 'Web Dev Tips', username: '@webdevtips', category: 'Programming', subscribers: 20000, status: 'approved', featured: true },
-    ],
-    rejected: [
-      { id: 4, name: 'Spam Channel', username: '@spam', category: 'Other', subscribers: 100, status: 'rejected' },
-    ],
-  };
 
   const verifyAndApprove = async (channelId) => {
     const channel = Object.values(channels)
@@ -109,12 +92,11 @@ const AdminDashboard = () => {
 
   const handleApprove = async (channelId) => {
     await verifyAndApprove(channelId);
-    // TODO: Implement API call to update channel status
+    approveChannel(channelId);
   };
 
   const handleReject = (channelId) => {
-    // TODO: Implement rejection logic with API call
-    console.log('Reject channel:', channelId);
+    rejectChannel(channelId);
   };
 
   const handleEdit = (channelId) => {
@@ -129,15 +111,13 @@ const AdminDashboard = () => {
   };
 
   const handleSaveEdit = (updatedChannel) => {
-    console.log('Save channel updates:', updatedChannel);
-    // TODO: Implement API call to update channel
+    updateChannel(updatedChannel.id, updatedChannel);
     setIsEditModalOpen(false);
     setEditingChannel(null);
   };
 
   const handleToggleFeature = (channelId) => {
-    // TODO: Implement feature toggle logic with API call
-    console.log('Toggle feature status:', channelId);
+    toggleFeature(channelId);
   };
 
   const renderChannelList = (channelList) => {

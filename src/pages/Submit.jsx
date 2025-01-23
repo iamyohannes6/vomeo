@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useChannels } from '../contexts/ChannelsContext';
 import { verifyChannel } from '../utils/telegramApi';
 
 const Submit = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { submitChannel } = useChannels();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [formData, setFormData] = useState({
@@ -43,6 +45,7 @@ const Submit = () => {
       // Prepare channel data
       const channelData = {
         ...formData,
+        id: Date.now(), // Generate a temporary ID
         username,
         submittedBy: user.id,
         submittedAt: new Date().toISOString(),
@@ -52,8 +55,8 @@ const Submit = () => {
         featured: false,
       };
 
-      // TODO: Replace with actual API call
-      console.log('Submit channel:', channelData);
+      // Submit channel to context
+      submitChannel(channelData);
       
       // Show success message and redirect
       alert('Channel submitted successfully! It will be reviewed by our team.');
