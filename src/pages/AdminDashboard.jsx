@@ -9,9 +9,11 @@ import {
   UsersIcon,
   ClockIcon,
   EllipsisVerticalIcon,
+  ShieldCheckIcon,
 } from '@heroicons/react/24/solid';
 import { useAuth } from '../contexts/AuthContext';
 import ChannelEditModal from '../components/ChannelEditModal';
+import { verifyChannel, verifyChannelOwnership, getChannelStats } from '../utils/telegramApi';
 
 const AdminDashboard = () => {
   const { user } = useAuth();
@@ -19,6 +21,8 @@ const AdminDashboard = () => {
   const [activeActions, setActiveActions] = useState(null);
   const [editingChannel, setEditingChannel] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [verificationStatus, setVerificationStatus] = useState({});
+  const [isVerifying, setIsVerifying] = useState(false);
 
   const closeActions = () => setActiveActions(null);
 
@@ -41,9 +45,71 @@ const AdminDashboard = () => {
     ],
   };
 
-  const handleApprove = (channelId) => {
-    // TODO: Implement approval logic with API call
-    console.log('Approve channel:', channelId);
+  const verifyAndApprove = async (channelId) => {
+    const channel = Object.values(channels)
+      .flat()
+      .find(c => c.id === channelId);
+
+    if (!channel) return;
+
+    setIsVerifying(true);
+    setVerificationStatus(prev => ({
+      ...prev,
+      [channelId]: { status: 'verifying', message: 'Verifying channel...' }
+    }));
+
+    try {
+      // Verify channel exists
+      const channelVerification = await verifyChannel(channel.username);
+      if (!channelVerification.success) {
+        throw new Error('Channel verification failed');
+      }
+
+      // Verify ownership
+      const ownershipVerification = await verifyChannelOwnership(channel.username);
+      if (!ownershipVerification.success || !ownershipVerification.isAdmin) {
+        throw new Error('Ownership verification failed');
+      }
+
+      // Get channel statistics
+      const stats = await getChannelStats(channel.username);
+      if (!stats.success) {
+        throw new Error('Failed to get channel statistics');
+      }
+
+      // Update verification status
+      setVerificationStatus(prev => ({
+        ...prev,
+        [channelId]: { 
+          status: 'success',
+          message: 'Verification successful',
+          stats: stats.data
+        }
+      }));
+
+      // TODO: Update channel in database
+      console.log('Channel verified and approved:', {
+        ...channel,
+        verified: true,
+        stats: stats.data
+      });
+
+    } catch (error) {
+      setVerificationStatus(prev => ({
+        ...prev,
+        [channelId]: { 
+          status: 'error',
+          message: error.message
+        }
+      }));
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const handleApprove = async (channelId) => {
+    await verifyAndApprove(channelId);
+    // TODO: Implement API call to update channel status
   };
 
   const handleReject = (channelId) => {
@@ -84,11 +150,32 @@ const AdminDashboard = () => {
               {channel.featured && (
                 <StarIcon className="w-5 h-5 text-yellow-500" />
               )}
+              {channel.verified && (
+                <ShieldCheckIcon className="w-5 h-5 text-blue-500" />
+              )}
             </div>
             <p className="text-gray-400">{channel.username}</p>
             <div className="mt-2 space-y-1">
               <p className="text-sm text-gray-400">Category: {channel.category}</p>
               <p className="text-sm text-gray-400">Subscribers: {channel.subscribers.toLocaleString()}</p>
+              {verificationStatus[channel.id] && (
+                <div className={`text-sm ${
+                  verificationStatus[channel.id].status === 'error' 
+                    ? 'text-red-400' 
+                    : verificationStatus[channel.id].status === 'success'
+                    ? 'text-green-400'
+                    : 'text-yellow-400'
+                }`}>
+                  {verificationStatus[channel.id].message}
+                </div>
+              )}
+              {verificationStatus[channel.id]?.stats && (
+                <div className="mt-2 space-y-1 text-sm text-gray-400">
+                  <p>Daily Messages: {verificationStatus[channel.id].stats.messages_per_day}</p>
+                  <p>Growth Rate: {verificationStatus[channel.id].stats.growth_rate.toFixed(1)}%</p>
+                  <p>Active Users: {verificationStatus[channel.id].stats.active_users.toLocaleString()}</p>
+                </div>
+              )}
             </div>
           </div>
           <div className="flex space-x-2">
@@ -96,12 +183,16 @@ const AdminDashboard = () => {
               <>
                 <button
                   onClick={() => handleApprove(channel.id)}
-                  className="px-3 py-1 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+                  disabled={isVerifying}
+                  className={`px-3 py-1 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors ${
+                    isVerifying ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
                 >
-                  Approve
+                  {isVerifying ? 'Verifying...' : 'Approve'}
                 </button>
                 <button
                   onClick={() => handleReject(channel.id)}
+                  disabled={isVerifying}
                   className="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
                 >
                   Reject
