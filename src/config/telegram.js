@@ -1,10 +1,26 @@
-// Telegram Bot Configuration
-export const BOT_USERNAME = 'vomeo_bot';
+// Telegram Configuration
+export const TELEGRAM_BOT_TOKEN = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
+export const BOT_USERNAME = import.meta.env.VITE_BOT_USERNAME || 'VomeoBot';
+export const STORAGE_CHANNEL = import.meta.env.VITE_TELEGRAM_STORAGE_CHANNEL;
 
-// Admin Configuration
+// Admin configuration
 export const ADMIN_IDS = [
-  6107187079, // Admin's Telegram ID
+  // Add your admin Telegram user IDs here
+  1234567890, // Example admin ID
 ];
+
+// Telegram API endpoints
+export const TELEGRAM_API_BASE = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
+export const TELEGRAM_FILE_API_BASE = `https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN}`;
+
+// Auth configuration
+export const TELEGRAM_LOGIN_PARAMS = {
+  botId: TELEGRAM_BOT_TOKEN?.split(':')[0],
+  requestAccess: 'write',
+  buttonSize: 'large',
+  showUserPhoto: true,
+  lang: 'en'
+};
 
 // Auth Configuration
 export const AUTH_ROUTES = {
