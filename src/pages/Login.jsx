@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { TELEGRAM_LOGIN_PARAMS, TELEGRAM_CONFIG } from '../config/telegram';
+import { TELEGRAM_LOGIN_PARAMS } from '../config/telegram';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -26,8 +26,8 @@ const Login = () => {
     script.setAttribute('data-request-access', TELEGRAM_LOGIN_PARAMS.requestAccess);
     script.setAttribute('data-userpic', TELEGRAM_LOGIN_PARAMS.showUserPhoto);
     script.setAttribute('data-lang', TELEGRAM_LOGIN_PARAMS.lang);
-    script.setAttribute('data-auth-url', `${TELEGRAM_CONFIG.origin}/auth/callback`);
-    script.setAttribute('data-origin', TELEGRAM_CONFIG.origin);
+    script.setAttribute('data-auth-url', `${TELEGRAM_LOGIN_PARAMS.origin}/auth/callback`);
+    script.setAttribute('data-origin', TELEGRAM_LOGIN_PARAMS.origin);
     script.async = true;
 
     const container = document.getElementById('telegram-login');

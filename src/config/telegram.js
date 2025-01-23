@@ -1,10 +1,3 @@
-export const TELEGRAM_CONFIG = {
-  botToken: import.meta.env.VITE_TELEGRAM_BOT_TOKEN,
-  botUsername: 'vomeo_bot',
-  redirectUrl: 'https://vomeo.netlify.app/auth/callback',
-  origin: 'https://vomeo.netlify.app',
-};
-
 // Telegram Widget Parameters
 export const TELEGRAM_LOGIN_PARAMS = {
   botId: 'vomeo_bot',
@@ -30,4 +23,12 @@ export const ADMIN_ROLES = {
   SUPER_ADMIN: 'super_admin',
   MODERATOR: 'moderator',
   EDITOR: 'editor',
-}; 
+};
+
+// Secure config that's only used server-side
+export const getServerConfig = () => ({
+  botToken: import.meta.env.VITE_TELEGRAM_BOT_TOKEN,
+  botUsername: 'vomeo_bot',
+  redirectUrl: 'https://vomeo.netlify.app/auth/callback',
+  origin: 'https://vomeo.netlify.app',
+}); 

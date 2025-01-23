@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { TELEGRAM_CONFIG } from '../config/telegram';
+import { getServerConfig } from '../config/telegram';
 import { checkUserRole } from '../config/admins';
 
 const AuthCallback = () => {
