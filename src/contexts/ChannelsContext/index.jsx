@@ -4,7 +4,7 @@ import {
   storeChannel, 
   updateChannelStatus, 
   toggleChannelFeature 
-} from '../services/channelService';
+} from '../../services/channelService';
 
 const ChannelsContext = createContext();
 
