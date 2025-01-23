@@ -29,16 +29,25 @@ export const storeChannel = async (channelData, submitter) => {
       status: 'pending',
       featured: false,
       verified: false,
-      submittedBy: {
+      photoUrl: channelInfo?.photo_url || null,
+      submittedBy: submitter ? {
         id: submitter.id,
         username: submitter.username,
         firstName: submitter.first_name,
         lastName: submitter.last_name
+      } : {
+        id: null,
+        username: 'anonymous',
+        firstName: null,
+        lastName: null
       },
       statistics: {
-        memberCount: channelInfo.member_count || 0,
-        messageCount: channelInfo.message_count || 0,
-        lastMessageDate: channelInfo.last_message_date || null
+        memberCount: channelInfo?.member_count || 0,
+        messageCount: channelInfo?.message_count || 0,
+        lastMessageDate: channelInfo?.last_message_date || null,
+        title: channelInfo?.title || channelData.name,
+        description: channelInfo?.description || channelData.description,
+        inviteLink: channelInfo?.invite_link || null
       },
       submittedAt: Timestamp.now(),
       updatedAt: Timestamp.now()
@@ -80,16 +89,24 @@ export const updateChannelStatus = async (channelId, status) => {
     
     if (!snapshot.empty) {
       const doc = snapshot.docs[0];
-      // Refresh channel statistics when approving
       let updateData = { status, updatedAt: Timestamp.now() };
       
       if (status === 'approved') {
-        const channelInfo = await getChannelInfo(doc.data().username);
-        updateData.statistics = {
-          memberCount: channelInfo.member_count || 0,
-          messageCount: channelInfo.message_count || 0,
-          lastMessageDate: channelInfo.last_message_date || null
-        };
+        try {
+          const channelInfo = await getChannelInfo(doc.data().username);
+          updateData.photoUrl = channelInfo?.photo_url || doc.data().photoUrl;
+          updateData.statistics = {
+            memberCount: channelInfo?.member_count || 0,
+            messageCount: channelInfo?.message_count || 0,
+            lastMessageDate: channelInfo?.last_message_date || null,
+            title: channelInfo?.title || doc.data().name,
+            description: channelInfo?.description || doc.data().description,
+            inviteLink: channelInfo?.invite_link || null
+          };
+        } catch (err) {
+          console.error('Error fetching updated channel info:', err);
+          // Continue with status update even if channel info fetch fails
+        }
       }
       
       await updateDoc(doc.ref, updateData);

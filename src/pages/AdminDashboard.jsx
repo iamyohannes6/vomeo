@@ -121,77 +121,100 @@ const AdminDashboard = () => {
     return channelList.map((channel) => (
       <div key={channel.id} className="bg-surface p-4 rounded-lg mb-4 border border-base-300">
         <div className="flex justify-between items-start">
-          <div>
-            <div className="flex items-center space-x-2">
-              <h3 className="text-lg font-semibold text-gray-100">{channel.name}</h3>
-              {channel.featured && (
-                <StarIcon className="w-5 h-5 text-yellow-500" title="Featured Channel" />
-              )}
-              {channel.verified && (
-                <ShieldCheckIcon className="w-5 h-5 text-blue-500" title="Verified Channel" />
+          <div className="flex gap-4">
+            {/* Channel Photo */}
+            <div className="flex-shrink-0">
+              {channel.photoUrl ? (
+                <img
+                  src={channel.photoUrl}
+                  alt={channel.name}
+                  className="w-16 h-16 rounded-lg object-cover"
+                />
+              ) : (
+                <div className="w-16 h-16 rounded-lg bg-base-300 flex items-center justify-center">
+                  <span className="text-2xl font-bold text-gray-400">
+                    {channel.name.charAt(0).toUpperCase()}
+                  </span>
+                </div>
               )}
             </div>
-            <p className="text-gray-400">@{channel.username}</p>
-            <div className="mt-2 space-y-1">
-              <p className="text-sm text-gray-400">Category: {channel.category}</p>
-              <p className="text-sm text-gray-400">Submitted by: {channel.submittedBy?.username || 'Anonymous'}</p>
-              <p className="text-sm text-gray-400">Submitted: {channel.submittedAt?.toDate().toLocaleDateString()}</p>
-              {channel.description && (
-                <p className="text-sm text-gray-400 mt-2">{channel.description}</p>
-              )}
+
+            <div>
+              <h3 className="text-lg font-semibold text-white">{channel.name}</h3>
+              <p className="text-sm text-gray-400">@{channel.username}</p>
+              
+              {/* Submitter Info */}
+              <div className="mt-2 text-sm text-gray-400">
+                <p>Submitted by: {channel.submittedBy?.username || 'Anonymous'}</p>
+                <p>Submitted: {channel.submittedAt?.toDate().toLocaleDateString()}</p>
+              </div>
+              
+              {/* Channel Statistics */}
+              <div className="mt-2 space-y-1">
+                <p className="text-sm text-gray-400">
+                  <span className="font-medium text-primary">{channel.statistics?.memberCount?.toLocaleString()}</span> members
+                </p>
+                {channel.statistics?.messageCount && (
+                  <p className="text-sm text-gray-400">
+                    <span className="font-medium text-primary">{channel.statistics.messageCount.toLocaleString()}</span> messages
+                  </p>
+                )}
+                {channel.statistics?.lastMessageDate && (
+                  <p className="text-sm text-gray-400">
+                    Last active: {new Date(channel.statistics.lastMessageDate).toLocaleDateString()}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
-          <div className="flex flex-col space-y-2">
+
+          <div className="flex flex-col gap-2">
             {channel.status === 'pending' && (
-              <div className="flex space-x-2">
+              <>
                 <button
                   onClick={() => handleApprove(channel.id)}
-                  className="px-3 py-1 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+                  className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
                 >
                   Approve
                 </button>
                 <button
                   onClick={() => handleReject(channel.id)}
-                  className="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+                  className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
                 >
                   Reject
                 </button>
-              </div>
+              </>
             )}
             {channel.status === 'approved' && (
-              <div className="flex flex-col space-y-2">
-                <button
-                  onClick={() => handleToggleFeature(channel.id)}
-                  className={`px-3 py-1 rounded-md transition-colors flex items-center justify-center space-x-1 ${
-                    channel.featured 
-                      ? 'bg-yellow-600 text-white hover:bg-yellow-700'
-                      : 'bg-gray-600 text-white hover:bg-gray-700'
-                  }`}
-                >
-                  <StarIcon className="w-4 h-4" />
-                  <span>{channel.featured ? 'Unfeature' : 'Feature'}</span>
-                </button>
-                <button
-                  onClick={() => handleToggleVerified(channel.id)}
-                  className={`px-3 py-1 rounded-md transition-colors flex items-center justify-center space-x-1 ${
-                    channel.verified 
-                      ? 'bg-blue-600 text-white hover:bg-blue-700'
-                      : 'bg-gray-600 text-white hover:bg-gray-700'
-                  }`}
-                >
-                  <ShieldCheckIcon className="w-4 h-4" />
-                  <span>{channel.verified ? 'Unverify' : 'Verify'}</span>
-                </button>
-              </div>
+              <button
+                onClick={() => handleToggleFeature(channel.id)}
+                className={`px-3 py-1 rounded ${
+                  channel.featured
+                    ? 'bg-yellow-600 hover:bg-yellow-700'
+                    : 'bg-gray-600 hover:bg-gray-700'
+                } text-white`}
+              >
+                {channel.featured ? 'Unfeature' : 'Feature'}
+              </button>
             )}
-            <button
-              onClick={() => handleEdit(channel.id)}
-              className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center space-x-1"
-            >
-              <PencilIcon className="w-4 h-4" />
-              <span>Edit</span>
-            </button>
           </div>
+        </div>
+
+        <p className="text-gray-300 mb-3">{channel.description}</p>
+        
+        <div className="flex gap-2 text-sm">
+          <span className={`px-2 py-1 rounded ${
+            channel.status === 'approved' ? 'bg-green-600/20 text-green-400' :
+            channel.status === 'pending' ? 'bg-yellow-600/20 text-yellow-400' :
+            'bg-red-600/20 text-red-400'
+          }`}>
+            {channel.status.charAt(0).toUpperCase() + channel.status.slice(1)}
+          </span>
+          {channel.featured && (
+            <span className="px-2 py-1 rounded bg-primary/20 text-primary">
+              Featured
+            </span>
+          )}
         </div>
       </div>
     ));
