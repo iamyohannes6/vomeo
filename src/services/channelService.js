@@ -14,6 +14,7 @@ import { db } from '../config/firebase';
 
 // Collection reference
 const channelsRef = collection(db, 'channels');
+const promoRef = collection(db, 'promo');
 
 // Store a new channel
 export const storeChannel = async (channelData) => {
@@ -126,5 +127,50 @@ export const getFeaturedChannels = async () => {
   } catch (err) {
     console.error('Error fetching featured channels:', err);
     throw err;
+  }
+};
+
+// Promo functions
+export const getPromo = async () => {
+  try {
+    const querySnapshot = await getDocs(promoRef);
+    const promos = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    // Return the most recent promo
+    return promos.sort((a, b) => b.updatedAt - a.updatedAt)[0] || null;
+  } catch (error) {
+    console.error('Error getting promo:', error);
+    throw error;
+  }
+};
+
+export const updatePromo = async (promoData) => {
+  try {
+    const timestamp = Timestamp.now();
+    const data = {
+      ...promoData,
+      updatedAt: timestamp
+    };
+
+    // Get existing promo
+    const existingPromo = await getPromo();
+
+    if (existingPromo) {
+      // Update existing promo
+      await updateDoc(doc(promoRef, existingPromo.id), data);
+      return { id: existingPromo.id, ...data };
+    } else {
+      // Create new promo
+      const docRef = await addDoc(promoRef, {
+        ...data,
+        createdAt: timestamp
+      });
+      return { id: docRef.id, ...data };
+    }
+  } catch (error) {
+    console.error('Error updating promo:', error);
+    throw error;
   }
 }; 

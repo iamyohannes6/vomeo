@@ -3,7 +3,9 @@ import {
   fetchChannels, 
   storeChannel, 
   updateChannelStatus, 
-  toggleChannelFeature 
+  toggleChannelFeature,
+  getPromo,
+  updatePromo
 } from '../services/channelService';
 
 const ChannelsContext = createContext();
@@ -12,30 +14,36 @@ export const ChannelsProvider = ({ children }) => {
   const [channels, setChannels] = useState({
     pending: [],
     approved: [],
-    featured: []
+    featured: [],
+    rejected: []
   });
+  const [promo, setPromo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Load channels on mount
+  // Fetch channels
   useEffect(() => {
+    const loadChannels = async () => {
+      try {
+        setLoading(true);
+        const data = await fetchChannels();
+        setChannels(data);
+        
+        // Also fetch promo content
+        const promoData = await getPromo();
+        setPromo(promoData);
+        
+        setError(null);
+      } catch (err) {
+        console.error('Error loading channels:', err);
+        setError('Failed to load channels');
+      } finally {
+        setLoading(false);
+      }
+    };
+
     loadChannels();
   }, []);
-
-  // Load all channels
-  const loadChannels = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await fetchChannels();
-      setChannels(data);
-    } catch (err) {
-      console.error('Error loading channels:', err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Submit a new channel
   const submitChannel = async (channelData) => {
@@ -60,60 +68,60 @@ export const ChannelsProvider = ({ children }) => {
   // Approve a channel
   const approveChannel = async (channelId) => {
     try {
-      setLoading(true);
-      setError(null);
       await updateChannelStatus(channelId, 'approved');
-      await loadChannels(); // Reload all channels
+      const updatedChannels = await fetchChannels();
+      setChannels(updatedChannels);
     } catch (err) {
       console.error('Error approving channel:', err);
-      setError(err.message);
       throw err;
-    } finally {
-      setLoading(false);
     }
   };
 
   // Reject a channel
   const rejectChannel = async (channelId) => {
     try {
-      setLoading(true);
-      setError(null);
       await updateChannelStatus(channelId, 'rejected');
-      await loadChannels(); // Reload all channels
+      const updatedChannels = await fetchChannels();
+      setChannels(updatedChannels);
     } catch (err) {
       console.error('Error rejecting channel:', err);
-      setError(err.message);
       throw err;
-    } finally {
-      setLoading(false);
     }
   };
 
   // Toggle featured status
   const toggleFeature = async (channelId) => {
     try {
-      setLoading(true);
-      setError(null);
       await toggleChannelFeature(channelId);
-      await loadChannels(); // Reload all channels
+      const updatedChannels = await fetchChannels();
+      setChannels(updatedChannels);
     } catch (err) {
       console.error('Error toggling feature:', err);
-      setError(err.message);
       throw err;
-    } finally {
-      setLoading(false);
+    }
+  };
+
+  const updatePromoContent = async (promoData) => {
+    try {
+      const updatedPromo = await updatePromo(promoData);
+      setPromo(updatedPromo);
+      return updatedPromo;
+    } catch (err) {
+      console.error('Error updating promo:', err);
+      throw err;
     }
   };
 
   const value = {
     channels,
+    promo,
     loading,
     error,
     submitChannel,
     approveChannel,
     rejectChannel,
     toggleFeature,
-    refreshChannels: loadChannels
+    updatePromoContent
   };
 
   return (

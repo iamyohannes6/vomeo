@@ -1,119 +1,44 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { StarIcon, ShieldCheckIcon } from '@heroicons/react/24/solid';
+import { StarIcon, ShieldCheckIcon, FunnelIcon } from '@heroicons/react/24/solid';
+import { useChannels } from '../contexts/ChannelsContext';
+import CompactChannelCard from '../components/CompactChannelCard';
+import PromoSection from '../components/PromoSection';
 
 const Home = () => {
-  const [channels, setChannels] = useState({
-    featured: [],
-    approved: []
+  const { channels, loading, error } = useChannels();
+  const [sortBy, setSortBy] = useState('newest');
+  const [filterCategory, setFilterCategory] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Mock promo data - this will come from admin panel later
+  const promoContent = {
+    title: "Discover Amazing Telegram Channels",
+    description: "Join our curated collection of the best Telegram channels. From tech to entertainment, we've got something for everyone.",
+    ctaLink: "/submit",
+    ctaText: "Submit Your Channel"
+  };
+
+  // Filter and sort channels
+  const filteredChannels = channels.approved?.filter(channel => {
+    const matchesCategory = filterCategory === 'all' || channel.category === filterCategory;
+    const matchesSearch = !searchQuery || 
+      channel.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      channel.description?.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
+  }) || [];
+
+  // Sort channels
+  const sortedChannels = [...filteredChannels].sort((a, b) => {
+    switch (sortBy) {
+      case 'subscribers':
+        return (b.subscribers || 0) - (a.subscribers || 0);
+      case 'newest':
+        return new Date(b.submittedAt) - new Date(a.submittedAt);
+      default:
+        return 0;
+    }
   });
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    // TODO: Replace with actual API call
-    const fetchChannels = async () => {
-      try {
-        // Simulate API call
-        const response = await new Promise((resolve) => {
-          setTimeout(() => {
-            resolve({
-              featured: [
-                {
-                  id: 1,
-                  name: 'AI News',
-                  username: '@ainews',
-                  category: 'Technology',
-                  subscribers: 25000,
-                  description: 'Latest updates in AI and machine learning',
-                  featured: true,
-                  verified: true
-                },
-                {
-                  id: 2,
-                  name: 'Web Dev Tips',
-                  username: '@webdevtips',
-                  category: 'Programming',
-                  subscribers: 20000,
-                  description: 'Daily web development tips and tricks',
-                  featured: true,
-                  verified: true
-                }
-              ],
-              approved: [
-                {
-                  id: 3,
-                  name: 'Crypto Updates',
-                  username: '@cryptoupdates',
-                  category: 'Cryptocurrency',
-                  subscribers: 10000,
-                  description: 'Real-time cryptocurrency news and analysis',
-                  featured: false,
-                  verified: true
-                },
-                {
-                  id: 4,
-                  name: 'Design Inspiration',
-                  username: '@designdaily',
-                  category: 'Design',
-                  subscribers: 15000,
-                  description: 'Daily design inspiration and resources',
-                  featured: false,
-                  verified: true
-                }
-              ]
-            });
-          }, 1000);
-        });
-
-        setChannels(response);
-      } catch (error) {
-        console.error('Error fetching channels:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchChannels();
-  }, []);
-
-  const renderChannelCard = (channel) => (
-    <div
-      key={channel.id}
-      className="bg-surface border border-base-300 rounded-lg p-4 hover:border-primary/50 transition-colors"
-    >
-      <div className="flex items-start justify-between">
-        <div>
-          <div className="flex items-center space-x-2">
-            <h3 className="text-lg font-semibold text-gray-100">{channel.name}</h3>
-            {channel.featured && (
-              <StarIcon className="w-5 h-5 text-yellow-500" />
-            )}
-            {channel.verified && (
-              <ShieldCheckIcon className="w-5 h-5 text-blue-500" />
-            )}
-          </div>
-          <p className="text-gray-400">{channel.username}</p>
-          <div className="mt-2 space-y-1">
-            <p className="text-sm text-gray-400">Category: {channel.category}</p>
-            <p className="text-sm text-gray-400">
-              {channel.subscribers.toLocaleString()} subscribers
-            </p>
-          </div>
-          <p className="mt-3 text-sm text-gray-400">{channel.description}</p>
-        </div>
-      </div>
-      <div className="mt-4">
-        <a
-          href={`https://t.me/${channel.username.slice(1)}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-block px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
-        >
-          Join Channel
-        </a>
-      </div>
-    </div>
-  );
 
   if (loading) {
     return (
@@ -123,44 +48,101 @@ const Home = () => {
     );
   }
 
+  if (error) {
+    return (
+      <div className="min-h-screen bg-base-100 flex items-center justify-center text-red-500">
+        Error: {error}
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-base-100 py-12 px-4">
-      <div className="max-w-6xl mx-auto">
-        {/* Hero Section */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-100 mb-4">
-            Discover the Best Telegram Channels
-          </h1>
-          <p className="text-xl text-gray-400 mb-8">
-            Find and join curated Telegram channels in various categories
-          </p>
-          <Link
-            to="/submit"
-            className="inline-block px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
-          >
-            Submit Your Channel
-          </Link>
-        </div>
+    <div className="min-h-screen bg-base-100">
+      {/* Navigation remains unchanged */}
+      
+      <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
+        {/* Promo Section */}
+        <PromoSection promo={promoContent} />
 
         {/* Featured Channels */}
-        {channels.featured.length > 0 && (
-          <div className="mb-12">
-            <h2 className="text-2xl font-bold text-gray-100 mb-6">
-              Featured Channels
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {channels.featured.map(renderChannelCard)}
+        {channels.featured && channels.featured.length > 0 && (
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-100">Featured Channels</h2>
+              <button 
+                onClick={() => document.getElementById('featured-scroll').scrollLeft += 200}
+                className="text-sm text-primary hover:text-primary/80"
+              >
+                See More →
+              </button>
+            </div>
+            <div 
+              id="featured-scroll"
+              className="flex space-x-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-base-300"
+            >
+              {channels.featured.map(channel => (
+                <CompactChannelCard key={channel.id} channel={channel} />
+              ))}
             </div>
           </div>
         )}
 
         {/* All Channels */}
         <div>
-          <h2 className="text-2xl font-bold text-gray-100 mb-6">
-            All Channels
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {channels.approved.map(renderChannelCard)}
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold text-gray-100">All Channels</h2>
+            <Link
+              to="/submit"
+              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-sm"
+            >
+              Submit Channel
+            </Link>
+          </div>
+
+          {/* Filters */}
+          <div className="flex flex-wrap gap-4 mb-6">
+            <input
+              type="text"
+              placeholder="Search channels..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="px-4 py-2 bg-surface border border-base-300 rounded-lg text-gray-100 focus:outline-none focus:border-primary"
+            />
+            
+            <select
+              value={filterCategory}
+              onChange={(e) => setFilterCategory(e.target.value)}
+              className="px-4 py-2 bg-surface border border-base-300 rounded-lg text-gray-100 focus:outline-none focus:border-primary"
+            >
+              <option value="all">All Categories</option>
+              <option value="tech">Technology</option>
+              <option value="entertainment">Entertainment</option>
+              <option value="news">News</option>
+              <option value="education">Education</option>
+              {/* Add more categories */}
+            </select>
+
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="px-4 py-2 bg-surface border border-base-300 rounded-lg text-gray-100 focus:outline-none focus:border-primary"
+            >
+              <option value="newest">Newest First</option>
+              <option value="subscribers">Most Subscribers</option>
+            </select>
+          </div>
+
+          {/* Channel Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[600px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-base-300">
+            {sortedChannels.map(channel => (
+              <CompactChannelCard key={channel.id} channel={channel} />
+            ))}
+            
+            {sortedChannels.length === 0 && (
+              <div className="col-span-full text-center py-8 text-gray-400">
+                No channels found matching your criteria
+              </div>
+            )}
           </div>
         </div>
       </div>

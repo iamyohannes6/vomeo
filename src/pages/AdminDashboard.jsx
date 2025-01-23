@@ -13,10 +13,21 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { useChannels } from '../contexts/ChannelsContext';
 import ChannelEditModal from '../components/ChannelEditModal';
+import PromoEditor from '../components/PromoEditor';
 
 const AdminDashboard = () => {
   const { user } = useAuth();
-  const { channels, loading, error, approveChannel, rejectChannel, toggleFeature, updateChannel } = useChannels();
+  const { 
+    channels, 
+    promo,
+    loading, 
+    error, 
+    approveChannel, 
+    rejectChannel, 
+    toggleFeature, 
+    updateChannel,
+    updatePromoContent
+  } = useChannels();
   const [activeTab, setActiveTab] = useState('pending');
   const [editingChannel, setEditingChannel] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -71,6 +82,31 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleToggleVerified = async (channelId) => {
+    try {
+      const channel = Object.values(channels)
+        .flat()
+        .find(c => c.id === channelId);
+      
+      if (channel) {
+        await updateChannel(channelId, {
+          ...channel,
+          verified: !channel.verified
+        });
+      }
+    } catch (err) {
+      console.error('Error toggling verified status:', err);
+    }
+  };
+
+  const handleSavePromo = async (promoData) => {
+    try {
+      await updatePromoContent(promoData);
+    } catch (err) {
+      console.error('Error saving promo:', err);
+    }
+  };
+
   const renderChannelList = (channelList) => {
     if (loading) {
       return <div className="text-center py-8 text-gray-400">Loading channels...</div>;
@@ -91,10 +127,10 @@ const AdminDashboard = () => {
             <div className="flex items-center space-x-2">
               <h3 className="text-lg font-semibold text-gray-100">{channel.name}</h3>
               {channel.featured && (
-                <StarIcon className="w-5 h-5 text-yellow-500" />
+                <StarIcon className="w-5 h-5 text-yellow-500" title="Featured Channel" />
               )}
               {channel.verified && (
-                <ShieldCheckIcon className="w-5 h-5 text-blue-500" />
+                <ShieldCheckIcon className="w-5 h-5 text-blue-500" title="Verified Channel" />
               )}
             </div>
             <p className="text-gray-400">@{channel.username}</p>
@@ -107,9 +143,9 @@ const AdminDashboard = () => {
               )}
             </div>
           </div>
-          <div className="flex space-x-2">
+          <div className="flex flex-col space-y-2">
             {channel.status === 'pending' && (
-              <>
+              <div className="flex space-x-2">
                 <button
                   onClick={() => handleApprove(channel.id)}
                   className="px-3 py-1 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
@@ -122,25 +158,40 @@ const AdminDashboard = () => {
                 >
                   Reject
                 </button>
-              </>
+              </div>
             )}
             {channel.status === 'approved' && (
-              <button
-                onClick={() => handleToggleFeature(channel.id)}
-                className={`px-3 py-1 rounded-md transition-colors ${
-                  channel.featured 
-                    ? 'bg-yellow-600 text-white hover:bg-yellow-700'
-                    : 'bg-gray-600 text-white hover:bg-gray-700'
-                }`}
-              >
-                {channel.featured ? 'Unfeature' : 'Feature'}
-              </button>
+              <div className="flex flex-col space-y-2">
+                <button
+                  onClick={() => handleToggleFeature(channel.id)}
+                  className={`px-3 py-1 rounded-md transition-colors flex items-center justify-center space-x-1 ${
+                    channel.featured 
+                      ? 'bg-yellow-600 text-white hover:bg-yellow-700'
+                      : 'bg-gray-600 text-white hover:bg-gray-700'
+                  }`}
+                >
+                  <StarIcon className="w-4 h-4" />
+                  <span>{channel.featured ? 'Unfeature' : 'Feature'}</span>
+                </button>
+                <button
+                  onClick={() => handleToggleVerified(channel.id)}
+                  className={`px-3 py-1 rounded-md transition-colors flex items-center justify-center space-x-1 ${
+                    channel.verified 
+                      ? 'bg-blue-600 text-white hover:bg-blue-700'
+                      : 'bg-gray-600 text-white hover:bg-gray-700'
+                  }`}
+                >
+                  <ShieldCheckIcon className="w-4 h-4" />
+                  <span>{channel.verified ? 'Unverify' : 'Verify'}</span>
+                </button>
+              </div>
             )}
             <button
               onClick={() => handleEdit(channel.id)}
-              className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center space-x-1"
             >
-              Edit
+              <PencilIcon className="w-4 h-4" />
+              <span>Edit</span>
             </button>
           </div>
         </div>
@@ -243,14 +294,26 @@ const AdminDashboard = () => {
               >
                 Rejected ({channels.rejected?.length || 0})
               </button>
+              <button
+                className={`py-3 md:py-4 px-3 md:px-4 border-b-2 transition-colors text-sm md:text-base ${
+                  activeTab === 'promo'
+                    ? 'border-primary text-primary font-medium'
+                    : 'border-transparent text-gray-400 hover:text-gray-200'
+                }`}
+                onClick={() => setActiveTab('promo')}
+              >
+                Promotional
+              </button>
             </div>
           </div>
 
-          {/* Channel List */}
+          {/* Content */}
           <div className="p-4 md:p-6">
-            <div className="space-y-4">
-              {renderChannelList(channels[activeTab])}
-            </div>
+            {activeTab === 'promo' ? (
+              <PromoEditor currentPromo={promo} onSave={handleSavePromo} />
+            ) : (
+              renderChannelList(channels[activeTab])
+            )}
           </div>
         </div>
       </div>
