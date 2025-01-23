@@ -1,4 +1,5 @@
 import { TELEGRAM_API_BASE, TELEGRAM_FILE_API_BASE, TELEGRAM_BOT_TOKEN } from '../config/telegram';
+import { channelCache } from './cache';
 
 const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
 const TELEGRAM_FILE_API = `https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN}`;
@@ -6,6 +7,13 @@ const TELEGRAM_FILE_API = `https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN
 // Get channel information including photo
 export const getChannelInfo = async (username) => {
   try {
+    // Check cache first
+    const cachedData = channelCache.get(username);
+    if (cachedData) {
+      console.log(`Using cached data for ${username}`);
+      return cachedData;
+    }
+
     // Clean up username (remove @ if present)
     const cleanUsername = username.replace('@', '');
     
@@ -72,7 +80,7 @@ export const getChannelInfo = async (username) => {
       }
     }
 
-    return {
+    const channelInfo = {
       id: chat.id,
       title: chat.title,
       username: chat.username,
@@ -82,6 +90,12 @@ export const getChannelInfo = async (username) => {
       invite_link: chat.invite_link,
       type: chat.type
     };
+
+    // Store in cache
+    channelCache.set(username, channelInfo);
+    console.log(`Cached data for ${username}`);
+
+    return channelInfo;
   } catch (error) {
     console.error('Error fetching channel info:', error);
     throw error;
