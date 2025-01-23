@@ -1,7 +1,7 @@
 const BOT_TOKEN = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
-const STORAGE_CHANNEL_ID = "-1002430549957"; // Use the numeric ID directly
+const STORAGE_CHANNEL = import.meta.env.VITE_TELEGRAM_STORAGE_CHANNEL || "@vomeo_storage";
 
-if (!BOT_TOKEN) {
+if (!BOT_TOKEN || !STORAGE_CHANNEL) {
   console.error('Missing required environment variables');
 }
 
@@ -11,17 +11,28 @@ const callBotApi = async (method, params = {}) => {
     throw new Error('Bot token not configured');
   }
 
-  const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/${method}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(params)
-  });
-  
-  const data = await response.json();
-  if (!data.ok) throw new Error(data.description || 'Telegram API error');
-  return data.result;
+  try {
+    const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/${method}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(params)
+    });
+    
+    const data = await response.json();
+    console.log(`API ${method} response:`, data);
+
+    if (!data.ok) {
+      console.error(`Telegram API error in ${method}:`, data);
+      throw new Error(data.description || 'Telegram API error');
+    }
+
+    return data.result;
+  } catch (err) {
+    console.error(`Error calling ${method}:`, err);
+    throw err;
+  }
 };
 
 // Format channel data as a message
@@ -70,12 +81,33 @@ const parseChannelMessage = (message) => {
   };
 };
 
+// Get channel ID from username or ID
+const resolveChannelId = async (channelIdentifier) => {
+  try {
+    // If it's already a numeric ID, return it
+    if (channelIdentifier.startsWith('-100')) {
+      return channelIdentifier;
+    }
+
+    // Otherwise, get the chat info to resolve the ID
+    const chatInfo = await callBotApi('getChat', {
+      chat_id: channelIdentifier
+    });
+    console.log('Resolved chat info:', chatInfo);
+    return chatInfo.id.toString();
+  } catch (err) {
+    console.error('Error resolving channel ID:', err);
+    throw err;
+  }
+};
+
 // Store a channel submission
 export const storeChannel = async (channelData) => {
   try {
+    const channelId = await resolveChannelId(STORAGE_CHANNEL);
     const message = formatChannelMessage(channelData);
     const result = await callBotApi('sendMessage', {
-      chat_id: STORAGE_CHANNEL_ID,
+      chat_id: channelId,
       text: message
     });
     console.log('Stored channel:', result);
@@ -87,28 +119,37 @@ export const storeChannel = async (channelData) => {
 };
 
 // Get messages from channel
-export const getChannelMessages = async (channelId) => {
+export const getChannelMessages = async (channelIdentifier) => {
   try {
-    // First verify we have access to the channel
-    const chatInfo = await callBotApi('getChat', {
-      chat_id: channelId
-    });
-    console.log('Chat info:', chatInfo);
+    // First resolve the channel ID
+    const channelId = await resolveChannelId(channelIdentifier);
+    console.log('Resolved channel ID:', channelId);
 
     // Get message history from channel
-    const messages = await callBotApi('getHistory', {
-      chat_id: channelId,
-      limit: 100 // Get last 100 messages
+    const result = await callBotApi('getUpdates', {
+      allowed_updates: ['message', 'channel_post'],
+      offset: -100,  // Get last 100 updates
+      limit: 100,
+      timeout: 0
     });
-    console.log('Raw messages:', messages);
+    
+    console.log('Raw updates:', result);
 
-    if (!messages || !Array.isArray(messages)) {
-      console.warn('No messages received or invalid response');
+    if (!result || !Array.isArray(result)) {
+      console.warn('No updates received');
       return [];
     }
 
-    console.log('Channel messages:', messages);
-    return messages;
+    // Filter messages from our target channel
+    const channelMessages = result
+      .filter(update => {
+        const msg = update.message || update.channel_post;
+        return msg && msg.chat && msg.chat.id.toString() === channelId.toString();
+      })
+      .map(update => update.message || update.channel_post);
+
+    console.log('Filtered channel messages:', channelMessages);
+    return channelMessages;
   } catch (err) {
     console.error('Error getting channel messages:', err);
     console.error('Error details:', err.message);
@@ -119,11 +160,29 @@ export const getChannelMessages = async (channelId) => {
 // Fetch all channels
 export const fetchChannels = async () => {
   try {
-    const messages = await getChannelMessages(STORAGE_CHANNEL_ID);
+    // First delete webhook
+    await deleteWebhook();
+
+    // Get messages from channel
+    const messages = await getChannelMessages(STORAGE_CHANNEL);
     console.log('Got messages:', messages);
 
+    if (!messages || !Array.isArray(messages)) {
+      console.warn('No messages received');
+      return [];
+    }
+
+    // Parse channel data from messages
     const channels = messages
-      .map(msg => parseChannelMessage(msg))
+      .filter(msg => msg && msg.text && msg.text.startsWith('#channel_submission'))
+      .map(msg => {
+        try {
+          return parseChannelMessage(msg);
+        } catch (err) {
+          console.warn('Failed to parse message:', msg);
+          return null;
+        }
+      })
       .filter(Boolean);
 
     console.log('Parsed channels:', channels);
@@ -154,7 +213,7 @@ export const updateChannelStatus = async (channelId, status) => {
     channel.status = status;
     
     const result = await callBotApi('editMessageText', {
-      chat_id: STORAGE_CHANNEL_ID,
+      chat_id: STORAGE_CHANNEL,
       message_id: targetMessage.message_id,
       text: formatChannelMessage(channel)
     });
@@ -184,7 +243,7 @@ export const toggleChannelFeature = async (channelId) => {
     channel.featured = !channel.featured;
     
     const result = await callBotApi('editMessageText', {
-      chat_id: STORAGE_CHANNEL_ID,
+      chat_id: STORAGE_CHANNEL,
       message_id: targetMessage.message_id,
       text: formatChannelMessage(channel)
     });
