@@ -1,13 +1,13 @@
 export const TELEGRAM_CONFIG = {
   botToken: '7993463093:AAGZ_oSPTRjjDwurV5Kceo4Xq6A3ZdpW4lI',
-  botUsername: 'vomeo_bot', // Add your bot's username
+  botUsername: 'vomeo_bot',
   redirectUrl: 'https://vomeo.netlify.app/auth/callback',
   origin: 'https://vomeo.netlify.app',
 };
 
 // Telegram Widget Parameters
 export const TELEGRAM_LOGIN_PARAMS = {
-  botId: '7993463093',
+  botId: 'vomeo_bot',
   requestAccess: 'write',
   buttonSize: 'large',
   cornerRadius: 8,
