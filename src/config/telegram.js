@@ -1,6 +1,6 @@
 // Telegram Bot Configuration
 const TELEGRAM_BOT_TOKEN = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
-const BOT_USERNAME = import.meta.env.VITE_BOT_USERNAME;
+const BOT_USERNAME = import.meta.env.VITE_BOT_USERNAME?.replace('@', ''); // Remove @ if present
 const STORAGE_CHANNEL = import.meta.env.VITE_TELEGRAM_STORAGE_CHANNEL;
 
 // API Endpoints
@@ -50,7 +50,11 @@ export const AUTH_ROUTES = {
 };
 
 // Site Configuration
-export const SITE_DOMAIN = 'https://vomeo.netlify.app';
+const SITE_DOMAIN = 'https://vomeo.netlify.app';
+
+export {
+  SITE_DOMAIN
+};
 
 // Secure config that's only used server-side
 export const getServerConfig = () => ({
