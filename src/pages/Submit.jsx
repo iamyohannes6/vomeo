@@ -36,24 +36,30 @@ const Submit = () => {
         ? formData.username 
         : `@${formData.username}`;
 
+      console.log('Verifying channel:', username);
+      
       // Verify channel exists
       const verification = await verifyChannel(username);
       if (!verification.success) {
         throw new Error('Channel verification failed. Please check the username and try again.');
       }
 
+      console.log('Channel verified:', verification);
+
       // Prepare channel data
       const channelData = {
         ...formData,
-        id: Date.now(), // Generate a temporary ID
+        id: Date.now().toString(), // Ensure ID is a string
         username,
-        submittedBy: user.id,
+        submittedBy: user?.id || 'anonymous',
         submittedAt: new Date().toISOString(),
         status: 'pending',
-        subscribers: verification.data.subscribers_count,
+        subscribers: verification.data?.subscribers_count || 0,
         verified: false,
         featured: false,
       };
+
+      console.log('Submitting channel data:', channelData);
 
       // Submit channel to context
       submitChannel(channelData);
@@ -63,6 +69,7 @@ const Submit = () => {
       navigate('/');
 
     } catch (err) {
+      console.error('Error submitting channel:', err);
       setError(err.message);
     } finally {
       setIsSubmitting(false);

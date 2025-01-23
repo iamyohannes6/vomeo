@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   CheckCircleIcon,
@@ -25,6 +25,11 @@ const AdminDashboard = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [verificationStatus, setVerificationStatus] = useState({});
   const [isVerifying, setIsVerifying] = useState(false);
+
+  // Add logging when channels change
+  useEffect(() => {
+    console.log('Current channels state:', channels);
+  }, [channels]);
 
   const closeActions = () => setActiveActions(null);
 
