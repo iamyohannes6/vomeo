@@ -1,8 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useChannels } from '../contexts/ChannelsContext';
-import { verifyChannel } from '../utils/telegramApi';
+import { verifyChannel, getChannelInfo } from '../utils/telegramApi';
+import { ShieldCheckIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
+
+const MAX_DESCRIPTION_LENGTH = 300;
 
 const Submit = () => {
   const navigate = useNavigate();
@@ -11,6 +14,8 @@ const Submit = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [channelPreview, setChannelPreview] = useState(null);
+  const [showGuidelines, setShowGuidelines] = useState(false);
 
   const [formData, setFormData] = useState({
     username: '',
@@ -32,13 +37,40 @@ const Submit = () => {
     'Other'
   ];
 
+  // Fetch channel preview when username changes
+  useEffect(() => {
+    const fetchChannelPreview = async () => {
+      if (!formData.username) {
+        setChannelPreview(null);
+        return;
+      }
+
+      try {
+        const cleanUsername = formData.username.replace('@', '').trim();
+        const info = await getChannelInfo(cleanUsername);
+        if (info) {
+          setChannelPreview(info);
+          setError('');
+        }
+      } catch (err) {
+        setChannelPreview(null);
+      }
+    };
+
+    const debounceTimer = setTimeout(fetchChannelPreview, 500);
+    return () => clearTimeout(debounceTimer);
+  }, [formData.username]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
+    if (name === 'description' && value.length > MAX_DESCRIPTION_LENGTH) {
+      return;
+    }
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
-    setError(''); // Clear error when user makes changes
+    setError('');
   };
 
   const handleSubmit = async (e) => {
@@ -48,7 +80,6 @@ const Submit = () => {
     setSuccess(false);
 
     try {
-      // Clean up username (remove @ if present)
       const cleanUsername = formData.username.replace('@', '').trim();
       if (!cleanUsername) {
         throw new Error('Please enter a channel username');
@@ -60,7 +91,7 @@ const Submit = () => {
         throw new Error('Channel not found. Please check the username and try again');
       }
 
-      // Submit channel
+      // Submit channel with preview data
       await submitChannel({
         ...formData,
         username: cleanUsername,
@@ -69,12 +100,15 @@ const Submit = () => {
           username: user?.username,
           firstName: user?.first_name,
           lastName: user?.last_name
-        }
+        },
+        photo_url: channelPreview?.photo_url,
+        member_count: channelPreview?.member_count,
+        title: channelPreview?.title
       });
 
       setSuccess(true);
       setFormData({ username: '', category: 'Technology', description: '' });
-      setTimeout(() => navigate('/'), 2000); // Redirect after 2 seconds
+      setTimeout(() => navigate('/'), 2000);
 
     } catch (err) {
       setError(err.message || 'Failed to submit channel. Please try again.');
@@ -85,7 +119,7 @@ const Submit = () => {
 
   return (
     <div className="min-h-screen bg-base-200 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md mx-auto">
+      <div className="max-w-2xl mx-auto">
         <div className="bg-base-100 rounded-xl shadow-lg p-6 space-y-6">
           <div className="text-center">
             <h2 className="text-2xl font-bold text-white">Submit a Channel</h2>
@@ -93,6 +127,30 @@ const Submit = () => {
               Share your favorite Telegram channel with the community
             </p>
           </div>
+
+          <div className="flex justify-end">
+            <button
+              type="button"
+              className="text-gray-400 hover:text-white flex items-center gap-2 text-sm"
+              onClick={() => setShowGuidelines(!showGuidelines)}
+            >
+              <InformationCircleIcon className="h-5 w-5" />
+              Submission Guidelines
+            </button>
+          </div>
+
+          {showGuidelines && (
+            <div className="bg-base-200 rounded-lg p-4 text-sm text-gray-300 space-y-2">
+              <h3 className="font-medium text-white">Before submitting:</h3>
+              <ul className="list-disc list-inside space-y-1">
+                <li>Ensure you have permission to submit the channel</li>
+                <li>Channel must be public and accessible</li>
+                <li>Content should be appropriate and follow our guidelines</li>
+                <li>Description should be clear and accurate</li>
+                <li>Choose the most relevant category</li>
+              </ul>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -115,6 +173,33 @@ const Submit = () => {
               </div>
             </div>
 
+            {channelPreview && (
+              <div className="bg-base-200 rounded-lg p-4">
+                <div className="flex items-center space-x-4">
+                  {channelPreview.photo_url ? (
+                    <img 
+                      src={channelPreview.photo_url} 
+                      alt={channelPreview.title}
+                      className="w-16 h-16 rounded-lg object-cover"
+                    />
+                  ) : (
+                    <div className="w-16 h-16 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <span className="text-2xl text-primary">
+                        {channelPreview.title?.[0] || '@'}
+                      </span>
+                    </div>
+                  )}
+                  <div>
+                    <h3 className="font-medium text-white">{channelPreview.title}</h3>
+                    <p className="text-sm text-gray-400">@{channelPreview.username}</p>
+                    <p className="text-sm text-gray-400">
+                      {channelPreview.member_count?.toLocaleString()} members
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-1">
                 Category
@@ -133,9 +218,14 @@ const Submit = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">
-                Description
-              </label>
+              <div className="flex justify-between mb-1">
+                <label className="block text-sm font-medium text-gray-300">
+                  Description
+                </label>
+                <span className="text-sm text-gray-400">
+                  {formData.description.length}/{MAX_DESCRIPTION_LENGTH}
+                </span>
+              </div>
               <textarea
                 name="description"
                 value={formData.description}
