@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { BOT_USERNAME, SITE_DOMAIN } from '../config/telegram';
+import { BOT_USERNAME } from '../config/telegram';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -38,6 +38,7 @@ const Login = () => {
     const script = document.createElement('script');
     script.src = 'https://telegram.org/js/telegram-widget.js?22';
     script.async = true;
+    script.defer = true;
 
     // Set required attributes
     script.setAttribute('data-telegram-login', BOT_USERNAME);
@@ -45,6 +46,8 @@ const Login = () => {
     script.setAttribute('data-radius', '10');
     script.setAttribute('data-onauth', 'onTelegramAuth(user)');
     script.setAttribute('data-request-access', 'write');
+    script.setAttribute('data-auth-url', 'https://vomeo.netlify.app/auth/telegram/callback');
+    script.setAttribute('data-origin', 'https://vomeo.netlify.app');
 
     // Add script to container
     const container = document.getElementById('telegram-login');
