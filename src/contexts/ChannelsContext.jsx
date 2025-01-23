@@ -1,5 +1,19 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { 
+  collection,
+  query,
+  where,
+  orderBy,
+  getDocs,
+  doc,
+  updateDoc,
+  deleteDoc,
+  addDoc,
+  Timestamp
+} from 'firebase/firestore';
+import { db } from '../config/firebase';
+import { getChannelInfo } from '../utils/telegramApi';
+import { 
   fetchChannels, 
   storeChannel, 
   updateChannelStatus, 
@@ -9,9 +23,67 @@ import {
   updatePromoContent,
   getPromo
 } from '../services/channelService';
-import { getChannelInfo } from '../utils/telegramApi';
 
 const ChannelsContext = createContext();
+
+// Collection references
+const channelsRef = collection(db, 'channels');
+const promoRef = collection(db, 'promo');
+const secondaryPromoRef = collection(db, 'secondaryPromo');
+
+// Channel query functions
+const getPendingChannels = async () => {
+  const q = query(
+    channelsRef,
+    where('status', '==', 'pending'),
+    orderBy('createdAt', 'desc')
+  );
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  }));
+};
+
+const getApprovedChannels = async () => {
+  const q = query(
+    channelsRef,
+    where('status', '==', 'approved'),
+    orderBy('updatedAt', 'desc')
+  );
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  }));
+};
+
+const getFeaturedChannels = async () => {
+  const q = query(
+    channelsRef,
+    where('status', '==', 'approved'),
+    where('featured', '==', true),
+    orderBy('updatedAt', 'desc')
+  );
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  }));
+};
+
+const getRejectedChannels = async () => {
+  const q = query(
+    channelsRef,
+    where('status', '==', 'rejected'),
+    orderBy('updatedAt', 'desc')
+  );
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  }));
+};
 
 export const ChannelsProvider = ({ children }) => {
   const [channels, setChannels] = useState({
