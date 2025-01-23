@@ -134,8 +134,8 @@ const AdminDashboard = () => {
             <p className="text-gray-400">@{channel.username}</p>
             <div className="mt-2 space-y-1">
               <p className="text-sm text-gray-400">Category: {channel.category}</p>
-              <p className="text-sm text-gray-400">Submitted by: {channel.submittedBy}</p>
-              <p className="text-sm text-gray-400">Submitted at: {new Date(channel.submittedAt?.toDate()).toLocaleString()}</p>
+              <p className="text-sm text-gray-400">Submitted by: {channel.submittedBy?.username || 'Anonymous'}</p>
+              <p className="text-sm text-gray-400">Submitted: {channel.submittedAt?.toDate().toLocaleDateString()}</p>
               {channel.description && (
                 <p className="text-sm text-gray-400 mt-2">{channel.description}</p>
               )}

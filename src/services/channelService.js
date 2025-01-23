@@ -11,6 +11,7 @@ import {
   getFirestore 
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import { getChannelInfo } from '../utils/telegramApi';
 
 // Collection references
 const channelsRef = collection(db, 'channels');
@@ -18,17 +19,33 @@ const promoRef = collection(db, 'promo');
 const secondaryPromoRef = collection(db, 'secondaryPromo');
 
 // Store a new channel
-export const storeChannel = async (channelData) => {
+export const storeChannel = async (channelData, submitter) => {
   try {
-    const docRef = await addDoc(channelsRef, {
+    // Fetch channel statistics from Telegram
+    const channelInfo = await getChannelInfo(channelData.username);
+    
+    const channel = {
       ...channelData,
       status: 'pending',
       featured: false,
       verified: false,
+      submittedBy: {
+        id: submitter.id,
+        username: submitter.username,
+        firstName: submitter.first_name,
+        lastName: submitter.last_name
+      },
+      statistics: {
+        memberCount: channelInfo.member_count || 0,
+        messageCount: channelInfo.message_count || 0,
+        lastMessageDate: channelInfo.last_message_date || null
+      },
       submittedAt: Timestamp.now(),
       updatedAt: Timestamp.now()
-    });
-    return { id: docRef.id, ...channelData };
+    };
+
+    const docRef = await addDoc(channelsRef, channel);
+    return { id: docRef.id, ...channel };
   } catch (error) {
     console.error('Error storing channel:', error);
     throw error;
@@ -39,22 +56,16 @@ export const storeChannel = async (channelData) => {
 export const fetchChannels = async () => {
   try {
     const snapshot = await getDocs(channelsRef);
-    const channels = {
-      pending: [],
-      approved: [],
-      featured: [],
-      rejected: []
+    const channels = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+
+    return {
+      pending: channels.filter(channel => channel.status === 'pending'),
+      approved: channels.filter(channel => channel.status === 'approved'),
+      featured: channels.filter(channel => channel.featured)
     };
-
-    snapshot.forEach((doc) => {
-      const channel = { id: doc.id, ...doc.data() };
-      if (channel.featured) {
-        channels.featured.push(channel);
-      }
-      channels[channel.status].push(channel);
-    });
-
-    return channels;
   } catch (error) {
     console.error('Error fetching channels:', error);
     throw error;
@@ -64,11 +75,27 @@ export const fetchChannels = async () => {
 // Update channel status
 export const updateChannelStatus = async (channelId, status) => {
   try {
-    const channelRef = doc(db, 'channels', channelId);
-    await updateDoc(channelRef, {
-      status,
-      updatedAt: Timestamp.now()
-    });
+    const channelRef = query(channelsRef, where('__name__', '==', channelId));
+    const snapshot = await getDocs(channelRef);
+    
+    if (!snapshot.empty) {
+      const doc = snapshot.docs[0];
+      // Refresh channel statistics when approving
+      let updateData = { status, updatedAt: Timestamp.now() };
+      
+      if (status === 'approved') {
+        const channelInfo = await getChannelInfo(doc.data().username);
+        updateData.statistics = {
+          memberCount: channelInfo.member_count || 0,
+          messageCount: channelInfo.message_count || 0,
+          lastMessageDate: channelInfo.last_message_date || null
+        };
+      }
+      
+      await updateDoc(doc.ref, updateData);
+      return { id: doc.id, ...doc.data(), ...updateData };
+    }
+    throw new Error('Channel not found');
   } catch (error) {
     console.error('Error updating channel status:', error);
     throw error;
@@ -78,16 +105,29 @@ export const updateChannelStatus = async (channelId, status) => {
 // Toggle channel feature status
 export const toggleChannelFeature = async (channelId) => {
   try {
-    const channelRef = doc(db, 'channels', channelId);
-    const channelSnap = await getDocs(query(channelsRef, where('__name__', '==', channelId)));
+    const channelRef = query(channelsRef, where('__name__', '==', channelId));
+    const snapshot = await getDocs(channelRef);
     
-    if (!channelSnap.empty) {
-      const channel = { id: channelSnap.docs[0].id, ...channelSnap.docs[0].data() };
-      await updateDoc(channelRef, {
-        featured: !channel.featured,
-        updatedAt: Timestamp.now()
-      });
+    if (!snapshot.empty) {
+      const doc = snapshot.docs[0];
+      const featured = !doc.data().featured;
+      
+      // Refresh statistics when featuring a channel
+      const channelInfo = await getChannelInfo(doc.data().username);
+      const updateData = {
+        featured,
+        updatedAt: Timestamp.now(),
+        statistics: {
+          memberCount: channelInfo.member_count || 0,
+          messageCount: channelInfo.message_count || 0,
+          lastMessageDate: channelInfo.last_message_date || null
+        }
+      };
+      
+      await updateDoc(doc.ref, updateData);
+      return { id: doc.id, ...doc.data(), ...updateData };
     }
+    throw new Error('Channel not found');
   } catch (error) {
     console.error('Error toggling channel feature:', error);
     throw error;

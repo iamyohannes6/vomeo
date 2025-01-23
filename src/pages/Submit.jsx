@@ -3,41 +3,35 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useChannels } from '../contexts/ChannelsContext';
 
-export default function Submit() {
+const Submit = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { submitChannel, loading, error } = useChannels();
+  const { storeChannel, loading, error } = useChannels();
+  
   const [formData, setFormData] = useState({
     name: '',
     username: '',
-    category: '',
+    category: 'general',
     description: ''
   });
-  const [submitError, setSubmitError] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setSubmitError(null);
-
+    
     try {
-      // Prepare channel data
-      const channelData = {
+      // Clean up username (remove @ if present)
+      const cleanUsername = formData.username.startsWith('@') 
+        ? formData.username.slice(1) 
+        : formData.username;
+      
+      await storeChannel({
         ...formData,
-        submittedBy: user?.email || 'anonymous',
-        submittedAt: new Date().toISOString()
-      };
-
-      // Submit to Firebase
-      await submitChannel(channelData);
+        username: cleanUsername
+      }, user); // Pass the user object as submitter
       
-      // Show success message
-      alert('Channel submitted successfully! It will be reviewed by an admin.');
-      
-      // Redirect to home
       navigate('/');
     } catch (err) {
       console.error('Error submitting channel:', err);
-      setSubmitError(err.message);
     }
   };
 
@@ -50,115 +44,93 @@ export default function Submit() {
   };
 
   return (
-    <div className="min-h-screen bg-base-200 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md mx-auto bg-base-100 rounded-xl shadow-lg p-6">
-        <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold">Submit Channel</h2>
-          <p className="mt-2 text-neutral-content">
-            Submit your Telegram channel for review
-          </p>
-        </div>
-
+    <div className="container mx-auto px-4 py-8">
+      <div className="max-w-2xl mx-auto">
+        <h1 className="text-2xl font-bold text-white mb-6">Submit a Channel</h1>
+        
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Channel Name */}
           <div>
-            <label htmlFor="name" className="block text-sm font-medium">
+            <label className="block text-sm font-medium text-gray-200 mb-2">
               Channel Name
             </label>
             <input
-              id="name"
-              name="name"
               type="text"
-              required
+              name="name"
               value={formData.name}
               onChange={handleChange}
-              className="input input-bordered w-full mt-1"
-              placeholder="Enter channel name"
+              required
+              className="w-full px-4 py-2 rounded-lg bg-base-200 border border-base-300 text-white focus:outline-none focus:ring-2 focus:ring-primary"
+              placeholder="Channel Name"
             />
           </div>
 
-          {/* Channel Username */}
           <div>
-            <label htmlFor="username" className="block text-sm font-medium">
+            <label className="block text-sm font-medium text-gray-200 mb-2">
               Channel Username
             </label>
-            <div className="mt-1 flex rounded-md shadow-sm">
-              <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 bg-base-300">
-                @
-              </span>
-              <input
-                id="username"
-                name="username"
-                type="text"
-                required
-                value={formData.username}
-                onChange={handleChange}
-                className="input input-bordered flex-1 rounded-none rounded-r-md"
-                placeholder="channel_username"
-              />
-            </div>
+            <input
+              type="text"
+              name="username"
+              value={formData.username}
+              onChange={handleChange}
+              required
+              className="w-full px-4 py-2 rounded-lg bg-base-200 border border-base-300 text-white focus:outline-none focus:ring-2 focus:ring-primary"
+              placeholder="@username"
+            />
           </div>
 
-          {/* Category */}
           <div>
-            <label htmlFor="category" className="block text-sm font-medium">
+            <label className="block text-sm font-medium text-gray-200 mb-2">
               Category
             </label>
             <select
-              id="category"
               name="category"
-              required
               value={formData.category}
               onChange={handleChange}
-              className="select select-bordered w-full mt-1"
+              required
+              className="w-full px-4 py-2 rounded-lg bg-base-200 border border-base-300 text-white focus:outline-none focus:ring-2 focus:ring-primary"
             >
-              <option value="">Select a category</option>
+              <option value="general">General</option>
+              <option value="tech">Technology</option>
               <option value="news">News</option>
               <option value="entertainment">Entertainment</option>
               <option value="education">Education</option>
-              <option value="technology">Technology</option>
               <option value="business">Business</option>
               <option value="lifestyle">Lifestyle</option>
               <option value="other">Other</option>
             </select>
           </div>
 
-          {/* Description */}
           <div>
-            <label htmlFor="description" className="block text-sm font-medium">
+            <label className="block text-sm font-medium text-gray-200 mb-2">
               Description
             </label>
             <textarea
-              id="description"
               name="description"
-              rows={4}
-              required
               value={formData.description}
               onChange={handleChange}
-              className="textarea textarea-bordered w-full mt-1"
+              required
+              rows="4"
+              className="w-full px-4 py-2 rounded-lg bg-base-200 border border-base-300 text-white focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="Describe your channel..."
             />
           </div>
 
-          {/* Error Message */}
-          {(error || submitError) && (
-            <div className="text-error text-sm">
-              {error || submitError}
-            </div>
+          {error && (
+            <div className="text-red-500 text-sm">{error}</div>
           )}
 
-          {/* Submit Button */}
-          <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className={`btn btn-primary w-full ${loading ? 'loading' : ''}`}
-            >
-              {loading ? 'Submitting...' : 'Submit Channel'}
-            </button>
-          </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+          >
+            {loading ? 'Submitting...' : 'Submit Channel'}
+          </button>
         </form>
       </div>
     </div>
   );
-} 
+};
+
+export default Submit; 
