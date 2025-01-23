@@ -1,161 +1,171 @@
-import { motion } from 'framer-motion';
-import { ArrowRightIcon } from '@heroicons/react/20/solid';
-import { ChartBarIcon as TrendingUpIcon } from '@heroicons/react/24/outline';
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { StarIcon, ShieldCheckIcon } from '@heroicons/react/24/solid';
 
 const Home = () => {
-  return (
-    <div className="min-h-screen pb-8">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 gradient-bg opacity-5"></div>
-        <div className="section-container relative">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="max-w-3xl mx-auto text-center py-8 md:py-16 px-4"
-          >
-            <h1 className="text-3xl md:text-5xl font-bold mb-4 md:mb-6 gradient-bg text-transparent bg-clip-text leading-tight">
-              Discover Amazing Telegram Channels
-            </h1>
-            <p className="text-lg md:text-xl text-neutral-400 mb-6 md:mb-8">
-              Your gateway to the best Telegram channels and groups. Find, explore, and connect with communities that matter to you.
+  const [channels, setChannels] = useState({
+    featured: [],
+    approved: []
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // TODO: Replace with actual API call
+    const fetchChannels = async () => {
+      try {
+        // Simulate API call
+        const response = await new Promise((resolve) => {
+          setTimeout(() => {
+            resolve({
+              featured: [
+                {
+                  id: 1,
+                  name: 'AI News',
+                  username: '@ainews',
+                  category: 'Technology',
+                  subscribers: 25000,
+                  description: 'Latest updates in AI and machine learning',
+                  featured: true,
+                  verified: true
+                },
+                {
+                  id: 2,
+                  name: 'Web Dev Tips',
+                  username: '@webdevtips',
+                  category: 'Programming',
+                  subscribers: 20000,
+                  description: 'Daily web development tips and tricks',
+                  featured: true,
+                  verified: true
+                }
+              ],
+              approved: [
+                {
+                  id: 3,
+                  name: 'Crypto Updates',
+                  username: '@cryptoupdates',
+                  category: 'Cryptocurrency',
+                  subscribers: 10000,
+                  description: 'Real-time cryptocurrency news and analysis',
+                  featured: false,
+                  verified: true
+                },
+                {
+                  id: 4,
+                  name: 'Design Inspiration',
+                  username: '@designdaily',
+                  category: 'Design',
+                  subscribers: 15000,
+                  description: 'Daily design inspiration and resources',
+                  featured: false,
+                  verified: true
+                }
+              ]
+            });
+          }, 1000);
+        });
+
+        setChannels(response);
+      } catch (error) {
+        console.error('Error fetching channels:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchChannels();
+  }, []);
+
+  const renderChannelCard = (channel) => (
+    <div
+      key={channel.id}
+      className="bg-surface border border-base-300 rounded-lg p-4 hover:border-primary/50 transition-colors"
+    >
+      <div className="flex items-start justify-between">
+        <div>
+          <div className="flex items-center space-x-2">
+            <h3 className="text-lg font-semibold text-gray-100">{channel.name}</h3>
+            {channel.featured && (
+              <StarIcon className="w-5 h-5 text-yellow-500" />
+            )}
+            {channel.verified && (
+              <ShieldCheckIcon className="w-5 h-5 text-blue-500" />
+            )}
+          </div>
+          <p className="text-gray-400">{channel.username}</p>
+          <div className="mt-2 space-y-1">
+            <p className="text-sm text-gray-400">Category: {channel.category}</p>
+            <p className="text-sm text-gray-400">
+              {channel.subscribers.toLocaleString()} subscribers
             </p>
-            <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
-              <button className="btn-primary w-full sm:w-auto">Start Exploring</button>
-              <button className="w-full sm:w-auto px-6 py-2 rounded-lg border border-base-300/50 hover:border-primary transition-colors">
-                Submit Your Channel
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Featured Channels Section */}
-      <section className="px-4 py-8 md:py-12">
-        <div className="container mx-auto">
-          <div className="flex items-center justify-between mb-6 md:mb-8">
-            <h2 className="text-2xl md:text-3xl font-bold">Featured Channels</h2>
-            <button className="flex items-center space-x-2 text-primary hover:text-primary/80 transition-colors">
-              <span className="text-sm md:text-base">View All</span>
-              <ArrowRightIcon className="w-4 h-4" />
-            </button>
           </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-            {featuredChannels.map((channel) => (
-              <ChannelCard key={channel.id} channel={channel} />
-            ))}
-          </div>
+          <p className="mt-3 text-sm text-gray-400">{channel.description}</p>
         </div>
-      </section>
-
-      {/* Categories Section */}
-      <section className="bg-base-200/50 px-4 py-8 md:py-12">
-        <div className="container mx-auto">
-          <h2 className="text-2xl md:text-3xl font-bold mb-6 md:mb-8">Browse by Category</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
-            {categories.map((category) => (
-              <CategoryCard key={category.id} category={category} />
-            ))}
-          </div>
-        </div>
-      </section>
+      </div>
+      <div className="mt-4">
+        <a
+          href={`https://t.me/${channel.username.slice(1)}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-block px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+        >
+          Join Channel
+        </a>
+      </div>
     </div>
   );
-};
 
-const ChannelCard = ({ channel }) => (
-  <motion.div
-    whileHover={{ y: -5 }}
-    className="bg-base-200 border border-base-300/50 rounded-lg shadow-sm p-3 card-hover"
-  >
-    <div className="flex items-center gap-3">
-      <img src={channel.image} alt={channel.name} className="w-8 h-8 md:w-10 md:h-10 rounded-lg" />
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm md:text-base font-semibold truncate">{channel.name}</h3>
-          {channel.trending && (
-            <span className="flex items-center text-orange-500 text-xs shrink-0 ml-2">
-              <TrendingUpIcon className="w-3 h-3 md:w-4 md:h-4" />
-            </span>
-          )}
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-base-100 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-base-100 py-12 px-4">
+      <div className="max-w-6xl mx-auto">
+        {/* Hero Section */}
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold text-gray-100 mb-4">
+            Discover the Best Telegram Channels
+          </h1>
+          <p className="text-xl text-gray-400 mb-8">
+            Find and join curated Telegram channels in various categories
+          </p>
+          <Link
+            to="/submit"
+            className="inline-block px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+          >
+            Submit Your Channel
+          </Link>
         </div>
-        <p className="text-xs md:text-sm text-neutral-400 line-clamp-1 mt-0.5">{channel.description}</p>
-        <div className="flex items-center justify-between mt-1">
-          <span className="text-xs text-neutral-500">{channel.members} members</span>
-          <button className="text-primary hover:text-primary/80 transition-colors text-xs md:text-sm">
-            Join
-          </button>
+
+        {/* Featured Channels */}
+        {channels.featured.length > 0 && (
+          <div className="mb-12">
+            <h2 className="text-2xl font-bold text-gray-100 mb-6">
+              Featured Channels
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {channels.featured.map(renderChannelCard)}
+            </div>
+          </div>
+        )}
+
+        {/* All Channels */}
+        <div>
+          <h2 className="text-2xl font-bold text-gray-100 mb-6">
+            All Channels
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {channels.approved.map(renderChannelCard)}
+          </div>
         </div>
       </div>
     </div>
-  </motion.div>
-);
-
-const CategoryCard = ({ category }) => (
-  <motion.div
-    whileHover={{ scale: 1.02 }}
-    className="bg-base-200 border border-base-300/50 rounded-xl p-4 md:p-6 text-center card-hover cursor-pointer"
-  >
-    <div className="text-2xl md:text-3xl mb-2">{category.icon}</div>
-    <h3 className="font-semibold text-sm md:text-base">{category.name}</h3>
-    <p className="text-xs md:text-sm text-neutral-500">{category.count} channels</p>
-  </motion.div>
-);
-
-// Sample data
-const featuredChannels = [
-  {
-    id: 1,
-    name: "Crypto Daily",
-    description: "Latest updates and analysis from the crypto world",
-    members: "50K",
-    image: "https://via.placeholder.com/48",
-    trending: true,
-  },
-  {
-    id: 2,
-    name: "Tech News",
-    description: "Breaking news and updates from the tech industry",
-    members: "75K",
-    image: "https://via.placeholder.com/48",
-    trending: false,
-  },
-  {
-    id: 3,
-    name: "Gaming Hub",
-    description: "Gaming news, updates, and community discussions",
-    members: "100K",
-    image: "https://via.placeholder.com/48",
-    trending: true,
-  },
-];
-
-const categories = [
-  {
-    id: 1,
-    name: "Technology",
-    count: "1.2K",
-    icon: "🚀",
-  },
-  {
-    id: 2,
-    name: "Cryptocurrency",
-    count: "850",
-    icon: "💰",
-  },
-  {
-    id: 3,
-    name: "Gaming",
-    count: "1.5K",
-    icon: "🎮",
-  },
-  {
-    id: 4,
-    name: "Education",
-    count: "950",
-    icon: "📚",
-  },
-];
+  );
+};
 
 export default Home; 

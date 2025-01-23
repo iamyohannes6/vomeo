@@ -14,8 +14,8 @@ export const AUTH_ROUTES = {
   HOME: '/',
 };
 
-// Bot Configuration
-export const SITE_DOMAIN = 'https://vomeo.netlify.app/';
+// Site Configuration
+export const SITE_DOMAIN = 'https://vomeo.netlify.app';
 
 // Admin Roles
 export const ADMIN_ROLES = {
@@ -27,6 +27,6 @@ export const ADMIN_ROLES = {
 // Secure config that's only used server-side
 export const getServerConfig = () => ({
   botToken: import.meta.env.VITE_TELEGRAM_BOT_TOKEN,
-  redirectUrl: `${SITE_DOMAIN}auth/callback`,
-  origin: SITE_DOMAIN.slice(0, -1),
+  redirectUrl: `${SITE_DOMAIN}/auth/callback`,
+  origin: SITE_DOMAIN,
 }); 

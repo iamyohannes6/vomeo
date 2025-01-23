@@ -1,185 +1,173 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { CloudArrowUpIcon } from '@heroicons/react/24/outline';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { verifyChannel } from '../utils/telegramApi';
 
 const Submit = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
   const [formData, setFormData] = useState({
-    channelName: '',
-    channelUsername: '',
+    name: '',
+    username: '',
     category: '',
     description: '',
-    tags: '',
-    contactInfo: '',
   });
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    // Handle form submission
-    console.log('Form submitted:', formData);
-  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
+    setFormData(prev => ({
       ...prev,
-      [name]: value,
+      [name]: value
     }));
   };
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setIsSubmitting(true);
+
+    try {
+      // Clean username
+      const username = formData.username.startsWith('@') 
+        ? formData.username 
+        : `@${formData.username}`;
+
+      // Verify channel exists
+      const verification = await verifyChannel(username);
+      if (!verification.success) {
+        throw new Error('Channel verification failed. Please check the username and try again.');
+      }
+
+      // Prepare channel data
+      const channelData = {
+        ...formData,
+        username,
+        submittedBy: user.id,
+        submittedAt: new Date().toISOString(),
+        status: 'pending',
+        subscribers: verification.data.subscribers_count,
+        verified: false,
+        featured: false,
+      };
+
+      // TODO: Replace with actual API call
+      console.log('Submit channel:', channelData);
+      
+      // Show success message and redirect
+      alert('Channel submitted successfully! It will be reviewed by our team.');
+      navigate('/');
+
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-base-100">
-      <div className="section-container max-w-3xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-xl shadow-sm p-8"
-        >
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold mb-2">Submit Your Channel</h1>
-            <p className="text-neutral-600">
-              List your Telegram channel in our directory and reach more subscribers
-            </p>
-          </div>
+    <div className="min-h-screen bg-base-100 py-12 px-4">
+      <div className="max-w-2xl mx-auto">
+        <div className="bg-surface border border-base-300 rounded-lg p-6 md:p-8">
+          <h1 className="text-2xl font-bold text-gray-100 mb-6">Submit a Channel</h1>
+          
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 mb-6">
+              <p className="text-red-400">{error}</p>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Channel Name
-                </label>
-                <input
-                  type="text"
-                  name="channelName"
-                  value={formData.channelName}
-                  onChange={handleChange}
-                  className="w-full rounded-lg border-base-300 focus:border-primary focus:ring-1 focus:ring-primary"
-                  placeholder="e.g., Crypto Daily News"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Channel Username
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500">
-                    @
-                  </span>
-                  <input
-                    type="text"
-                    name="channelUsername"
-                    value={formData.channelUsername}
-                    onChange={handleChange}
-                    className="w-full rounded-lg border-base-300 pl-8 focus:border-primary focus:ring-1 focus:ring-primary"
-                    placeholder="username"
-                    required
-                  />
-                </div>
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-1">
+                Channel Name
+              </label>
+              <input
+                type="text"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                className="w-full px-3 py-2 bg-base-300 border border-base-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                required
+                placeholder="e.g. Tech News Daily"
+              />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Category</label>
+              <label className="block text-sm font-medium text-gray-400 mb-1">
+                Channel Username
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  name="username"
+                  value={formData.username}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 bg-base-300 border border-base-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                  required
+                  placeholder="e.g. @technews"
+                />
+              </div>
+              <p className="mt-1 text-xs text-gray-400">
+                Enter the channel's username (with or without @)
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-1">
+                Category
+              </label>
               <select
                 name="category"
                 value={formData.category}
                 onChange={handleChange}
-                className="w-full rounded-lg border-base-300 focus:border-primary focus:ring-1 focus:ring-primary"
+                className="w-full px-3 py-2 bg-base-300 border border-base-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                 required
               >
                 <option value="">Select a category</option>
-                {categories.map((category) => (
-                  <option key={category.value} value={category.value}>
-                    {category.label}
-                  </option>
-                ))}
+                <option value="Technology">Technology</option>
+                <option value="Programming">Programming</option>
+                <option value="Design">Design</option>
+                <option value="Gaming">Gaming</option>
+                <option value="Cryptocurrency">Cryptocurrency</option>
+                <option value="News">News</option>
+                <option value="Entertainment">Entertainment</option>
+                <option value="Other">Other</option>
               </select>
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">
-                Channel Description
+              <label className="block text-sm font-medium text-gray-400 mb-1">
+                Description
               </label>
               <textarea
                 name="description"
                 value={formData.description}
                 onChange={handleChange}
                 rows="4"
-                className="w-full rounded-lg border-base-300 focus:border-primary focus:ring-1 focus:ring-primary"
-                placeholder="Describe your channel and what subscribers can expect..."
+                className="w-full px-3 py-2 bg-base-300 border border-base-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                 required
-              ></textarea>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                Tags (comma separated)
-              </label>
-              <input
-                type="text"
-                name="tags"
-                value={formData.tags}
-                onChange={handleChange}
-                className="w-full rounded-lg border-base-300 focus:border-primary focus:ring-1 focus:ring-primary"
-                placeholder="e.g., crypto, trading, news"
+                placeholder="Describe what your channel is about..."
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                Contact Information
-              </label>
-              <input
-                type="email"
-                name="contactInfo"
-                value={formData.contactInfo}
-                onChange={handleChange}
-                className="w-full rounded-lg border-base-300 focus:border-primary focus:ring-1 focus:ring-primary"
-                placeholder="Your email address"
-                required
-              />
-            </div>
-
-            <div className="bg-base-200 rounded-lg p-4">
-              <div className="flex items-start space-x-3">
-                <CloudArrowUpIcon className="w-6 h-6 text-primary" />
-                <div className="text-sm">
-                  <p className="font-medium">Submission Guidelines</p>
-                  <ul className="mt-1 text-neutral-600 list-disc list-inside">
-                    <li>Channel must be active and have regular content updates</li>
-                    <li>No adult content or illegal activities</li>
-                    <li>Accurate and honest description required</li>
-                    <li>Channel must have at least 100 subscribers</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-end">
+            <div className="pt-4">
               <button
                 type="submit"
-                className="btn-primary px-8"
+                disabled={isSubmitting}
+                className={`w-full px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors ${
+                  isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
               >
-                Submit Channel
+                {isSubmitting ? 'Submitting...' : 'Submit Channel'}
               </button>
             </div>
           </form>
-        </motion.div>
+        </div>
       </div>
     </div>
   );
 };
-
-const categories = [
-  { label: 'Technology', value: 'tech' },
-  { label: 'Cryptocurrency', value: 'crypto' },
-  { label: 'Gaming', value: 'gaming' },
-  { label: 'Education', value: 'education' },
-  { label: 'Entertainment', value: 'entertainment' },
-  { label: 'News', value: 'news' },
-  { label: 'Business', value: 'business' },
-  { label: 'Lifestyle', value: 'lifestyle' },
-];
 
 export default Submit; 
