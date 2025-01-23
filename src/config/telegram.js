@@ -13,6 +13,7 @@ export const TELEGRAM_LOGIN_PARAMS = {
   cornerRadius: 8,
   showUserPhoto: true,
   lang: 'en',
+  origin: 'https://vomeo.netlify.app',
 };
 
 // Auth Routes
