@@ -111,14 +111,58 @@ export const updateChannelStatus = async (channelId, status) => {
 
 // Fetch all channels
 export const fetchChannels = async () => {
-  const messages = await callBotApi('getUpdates', {
-    allowed_updates: ['message'],
-    offset: -100 // Get last 100 messages
-  });
-  
-  return messages
-    .map(update => parseChannelMessage(update.message))
-    .filter(Boolean);
+  try {
+    let allMessages = [];
+    let offset = 0;
+    let hasMore = true;
+
+    // Keep fetching messages until we get them all
+    while (hasMore) {
+      console.log('Fetching messages with offset:', offset);
+      const updates = await callBotApi('getUpdates', {
+        offset,
+        limit: 100,
+        allowed_updates: ['message', 'channel_post']
+      });
+
+      console.log('Received updates:', updates);
+
+      if (updates.length === 0) {
+        hasMore = false;
+        continue;
+      }
+
+      // Filter for messages from our storage channel
+      const channelMessages = updates
+        .filter(update => update.message?.chat.id === STORAGE_CHANNEL_ID)
+        .map(update => update.message);
+
+      allMessages = [...allMessages, ...channelMessages];
+      
+      // Update offset for next batch
+      offset = updates[updates.length - 1].update_id + 1;
+
+      // If we got less than 100 messages, we've reached the end
+      if (updates.length < 100) {
+        hasMore = false;
+      }
+    }
+
+    console.log('All messages:', allMessages);
+
+    // Parse channel submissions
+    const channels = allMessages
+      .filter(msg => msg.text?.startsWith('#channel_submission'))
+      .map(msg => parseChannelMessage(msg))
+      .filter(Boolean);
+
+    console.log('Parsed channels:', channels);
+    
+    return channels;
+  } catch (err) {
+    console.error('Error fetching channels:', err);
+    return [];
+  }
 };
 
 // Toggle channel feature status
