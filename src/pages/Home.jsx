@@ -5,6 +5,61 @@ import { useChannels } from '../contexts/ChannelsContext';
 import CompactChannelCard from '../components/CompactChannelCard';
 import PromoSection from '../components/PromoSection';
 
+const ChannelCard = ({ channel }) => (
+  <div className="bg-base-200 rounded-lg p-3 hover:bg-base-300 transition-colors">
+    <div className="flex items-center space-x-3">
+      {/* Channel Image */}
+      {channel.photo_url ? (
+        <img 
+          src={channel.photo_url} 
+          alt={channel.title}
+          className="w-12 h-12 rounded-lg object-cover"
+        />
+      ) : (
+        <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+          <span className="text-xl text-primary">
+            {channel.title?.[0] || '@'}
+          </span>
+        </div>
+      )}
+
+      {/* Channel Info */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-medium text-white truncate">
+            {channel.title || `@${channel.username}`}
+          </h3>
+          {channel.verified && (
+            <ShieldCheckIcon className="h-4 w-4 text-blue-500" />
+          )}
+          {channel.featured && (
+            <StarIcon className="h-4 w-4 text-yellow-500" />
+          )}
+        </div>
+        <p className="text-xs text-gray-400">@{channel.username}</p>
+        <p className="text-xs text-gray-400">
+          {channel.member_count?.toLocaleString() || '0'} members
+        </p>
+      </div>
+
+      {/* Join Button */}
+      <a
+        href={`https://t.me/${channel.username}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="px-3 py-1 bg-primary/90 hover:bg-primary text-white text-sm rounded-lg transition-colors"
+      >
+        Join
+      </a>
+    </div>
+
+    {/* Description */}
+    <p className="mt-2 text-sm text-gray-400 line-clamp-2">
+      {channel.description}
+    </p>
+  </div>
+);
+
 const Home = () => {
   const { channels, promo, secondaryPromo, loading, error } = useChannels();
   const [sortBy, setSortBy] = useState('newest');
@@ -73,7 +128,7 @@ const Home = () => {
               className="flex space-x-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-base-300"
             >
               {channels.featured.map(channel => (
-                <CompactChannelCard key={channel.id} channel={channel} />
+                <ChannelCard key={channel.id} channel={channel} />
               ))}
             </div>
           </div>
@@ -130,7 +185,7 @@ const Home = () => {
           {/* Channel Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[600px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-base-300">
             {sortedChannels.map(channel => (
-              <CompactChannelCard key={channel.id} channel={channel} />
+              <ChannelCard key={channel.id} channel={channel} />
             ))}
             
             {sortedChannels.length === 0 && (

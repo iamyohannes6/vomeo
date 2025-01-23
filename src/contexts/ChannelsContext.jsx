@@ -5,11 +5,10 @@ import {
   updateChannelStatus, 
   toggleChannelFeature,
   toggleChannelVerified,
-  getPromo,
-  getSecondaryPromo,
-  updatePromo,
-  updateSecondaryPromo
+  removeChannel as removeChannelFromDb,
+  updatePromoContent as updatePromoInDb
 } from '../services/channelService';
+import { getChannelInfo } from '../utils/telegramApi';
 
 const ChannelsContext = createContext();
 
@@ -117,29 +116,45 @@ export const ChannelsProvider = ({ children }) => {
 
   const toggleVerified = async (channelId) => {
     try {
+      setLoading(true);
       await toggleChannelVerified(channelId);
       const updatedChannels = await fetchChannels();
       setChannels(updatedChannels);
     } catch (err) {
       console.error('Error toggling verified status:', err);
       throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const removeChannel = async (channelId) => {
+    try {
+      setLoading(true);
+      await removeChannelFromDb(channelId);
+      await loadChannels();
+    } catch (err) {
+      console.error('Error removing channel:', err);
+      throw err;
+    } finally {
+      setLoading(false);
     }
   };
 
   const updatePromoContent = async (promoData, isSecondary = false) => {
     try {
+      setLoading(true);
+      await updatePromoInDb(promoData, isSecondary);
       if (isSecondary) {
-        const updatedPromo = await updateSecondaryPromo(promoData);
-        setSecondaryPromo(updatedPromo);
-        return updatedPromo;
+        setSecondaryPromo(promoData);
       } else {
-        const updatedPromo = await updatePromo(promoData);
-        setPromo(updatedPromo);
-        return updatedPromo;
+        setPromo(promoData);
       }
     } catch (err) {
       console.error('Error updating promo:', err);
       throw err;
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -147,7 +162,32 @@ export const ChannelsProvider = ({ children }) => {
     try {
       setLoading(true);
       const data = await fetchChannels();
-      setChannels(data);
+      
+      // Fetch latest channel info for each channel
+      const updatedChannels = await Promise.all(
+        Object.entries(data).map(async ([status, channelList]) => {
+          const updatedList = await Promise.all(
+            channelList.map(async (channel) => {
+              try {
+                const info = await getChannelInfo(channel.username);
+                return {
+                  ...channel,
+                  photo_url: info?.photo_url || channel.photo_url,
+                  member_count: info?.member_count || channel.member_count,
+                  title: info?.title || channel.title
+                };
+              } catch (err) {
+                console.error(`Error fetching info for ${channel.username}:`, err);
+                return channel;
+              }
+            })
+          );
+          return [status, updatedList];
+        })
+      );
+
+      setChannels(Object.fromEntries(updatedChannels));
+      setError(null);
     } catch (err) {
       console.error('Error loading channels:', err);
       setError('Failed to load channels');
@@ -167,6 +207,7 @@ export const ChannelsProvider = ({ children }) => {
     rejectChannel,
     toggleFeature,
     toggleVerified,
+    removeChannel,
     updatePromoContent,
     loadChannels
   };
