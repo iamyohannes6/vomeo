@@ -1,110 +1,74 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { 
-  fetchChannels, 
-  storeChannel, 
-  updateChannelStatus, 
-  toggleChannelFeature 
-} from '../utils/telegramBot';
+import { getChannelMessages } from '../utils/telegramBot';
 
-const ChannelsContext = createContext(null);
+const STORAGE_CHANNEL_ID = '-1002430549957';
+
+const ChannelsContext = createContext();
 
 export const ChannelsProvider = ({ children }) => {
   const [channels, setChannels] = useState({
     pending: [],
     approved: [],
-    featured: [],
-    rejected: []
+    featured: []
   });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Fetch channels from Telegram storage on mount
-  useEffect(() => {
-    loadChannels();
-  }, []);
-
-  const loadChannels = async () => {
+  const fetchChannels = async () => {
     try {
-      const data = await fetchChannels();
-      
-      // Transform the data into our state structure
-      const transformed = {
-        pending: data.filter(c => c.status === 'pending'),
-        approved: data.filter(c => c.status === 'approved'),
-        featured: data.filter(c => c.status === 'approved' && c.featured),
-        rejected: data.filter(c => c.status === 'rejected')
-      };
-      
-      setChannels(transformed);
+      setLoading(true);
+      setError(null);
+
+      const messages = await getChannelMessages(STORAGE_CHANNEL_ID);
+      console.log('Fetched messages:', messages);
+
+      const parsedChannels = messages.reduce((acc, msg) => {
+        try {
+          // Try to parse channel data from message text
+          const channelData = JSON.parse(msg.text);
+          
+          // Add message ID and date
+          channelData.messageId = msg.message_id;
+          channelData.submittedAt = msg.date;
+
+          // Sort into appropriate category
+          if (channelData.status === 'pending') {
+            acc.pending.push(channelData);
+          } else if (channelData.status === 'approved') {
+            if (channelData.featured) {
+              acc.featured.push(channelData);
+            }
+            acc.approved.push(channelData);
+          }
+        } catch (err) {
+          console.warn('Failed to parse message:', msg);
+        }
+        return acc;
+      }, { pending: [], approved: [], featured: [] });
+
+      console.log('Parsed channels:', parsedChannels);
+      setChannels(parsedChannels);
     } catch (err) {
       console.error('Error fetching channels:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const submitChannel = async (channelData) => {
-    try {
-      const savedChannel = await storeChannel(channelData);
-      setChannels(prev => ({
-        ...prev,
-        pending: [...prev.pending, savedChannel]
-      }));
-      return savedChannel;
-    } catch (err) {
-      console.error('Error submitting channel:', err);
-      throw err;
-    }
-  };
-
-  const approveChannel = async (channelId) => {
-    try {
-      const updatedChannel = await updateChannelStatus(channelId, 'approved');
-      setChannels(prev => ({
-        ...prev,
-        pending: prev.pending.filter(c => c.id !== channelId),
-        rejected: prev.rejected.filter(c => c.id !== channelId),
-        approved: [...prev.approved, updatedChannel]
-      }));
-    } catch (err) {
-      console.error('Error approving channel:', err);
-      throw err;
-    }
-  };
-
-  const rejectChannel = async (channelId) => {
-    try {
-      const updatedChannel = await updateChannelStatus(channelId, 'rejected');
-      setChannels(prev => ({
-        ...prev,
-        pending: prev.pending.filter(c => c.id !== channelId),
-        approved: prev.approved.filter(c => c.id !== channelId),
-        rejected: [...prev.rejected, updatedChannel]
-      }));
-    } catch (err) {
-      console.error('Error rejecting channel:', err);
-      throw err;
-    }
-  };
-
-  const toggleFeature = async (channelId) => {
-    try {
-      const updatedChannel = await toggleChannelFeature(channelId);
-      setChannels(prev => ({
-        ...prev,
-        approved: prev.approved.map(c => c.id === channelId ? updatedChannel : c),
-        featured: updatedChannel.featured
-          ? [...prev.featured, updatedChannel]
-          : prev.featured.filter(c => c.id !== channelId)
-      }));
-    } catch (err) {
-      console.error('Error toggling feature:', err);
-      throw err;
-    }
-  };
+  useEffect(() => {
+    fetchChannels();
+    
+    // Set up polling for updates
+    const interval = setInterval(fetchChannels, 30000); // Poll every 30 seconds
+    return () => clearInterval(interval);
+  }, []);
 
   const value = {
     channels,
-    submitChannel,
-    approveChannel,
-    rejectChannel,
-    toggleFeature,
+    loading,
+    error,
+    refreshChannels: fetchChannels
   };
 
   return (
@@ -120,4 +84,6 @@ export const useChannels = () => {
     throw new Error('useChannels must be used within a ChannelsProvider');
   }
   return context;
-}; 
+};
+
+export default ChannelsContext; 

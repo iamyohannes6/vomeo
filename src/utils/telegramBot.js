@@ -87,25 +87,28 @@ export const storeChannel = async (channelData) => {
 };
 
 // Get messages from channel
-const getChannelMessages = async () => {
+const getChannelMessages = async (channelId) => {
   try {
-    // Get recent messages
-    const updates = await callBotApi('getUpdates', {
-      offset: -1,
-      limit: 100,
-      timeout: 0,
-      allowed_updates: ['channel_post', 'message']
+    // First verify we have access to the channel
+    const chatInfo = await callBotApi('getChat', {
+      chat_id: channelId
     });
-    console.log('Updates:', updates);
+    console.log('Chat info:', chatInfo);
 
-    // Filter channel messages
-    const messages = updates
-      .filter(update => update.channel_post || update.message)
-      .map(update => update.channel_post || update.message)
-      .filter(msg => msg.chat.id.toString() === STORAGE_CHANNEL_ID);
+    // Get messages from channel
+    const messages = await callBotApi('getUpdates', {
+      allowed_updates: ['message', 'channel_post'],
+      offset: -1 // Get latest updates
+    });
+    console.log('Messages:', messages);
 
-    console.log('Filtered messages:', messages);
-    return messages;
+    // Filter messages from our storage channel
+    const channelMessages = messages.result.filter(update => {
+      const msg = update.message || update.channel_post;
+      return msg && msg.chat.id.toString() === channelId.toString();
+    });
+
+    return channelMessages.map(update => update.message || update.channel_post);
   } catch (err) {
     console.error('Error getting channel messages:', err);
     return [];
@@ -191,4 +194,31 @@ export const toggleChannelFeature = async (channelId) => {
     console.error('Error toggling channel feature:', err);
     throw err;
   }
-}; 
+};
+
+// Set up webhook for the bot
+const setupWebhook = async () => {
+  try {
+    // First, delete any existing webhook
+    await callBotApi('deleteWebhook', {
+      drop_pending_updates: false
+    });
+
+    // Set up new webhook
+    const result = await callBotApi('setWebhook', {
+      url: 'https://vomeo.netlify.app/api/telegram-webhook',
+      allowed_updates: ['message', 'channel_post'],
+      secret_token: 'your-secret-token'
+    });
+    console.log('Webhook setup result:', result);
+
+    // Get webhook info
+    const info = await callBotApi('getWebhookInfo');
+    console.log('Webhook info:', info);
+  } catch (err) {
+    console.error('Error setting up webhook:', err);
+  }
+};
+
+// Initialize bot on load
+setupWebhook().catch(console.error); 
