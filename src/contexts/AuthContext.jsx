@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { ADMIN_ROLES } from '../config/telegram';
+import { ADMIN_IDS } from '../config/telegram';
 
 const AuthContext = createContext(null);
 
@@ -9,38 +9,33 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     // Check for existing session
-    const checkAuth = async () => {
-      try {
-        const session = localStorage.getItem('telegram_auth');
-        if (session) {
-          setUser(JSON.parse(session));
-        }
-      } catch (error) {
-        console.error('Auth check failed:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    checkAuth();
+    const savedUser = localStorage.getItem('user');
+    if (savedUser) {
+      const parsedUser = JSON.parse(savedUser);
+      setUser(parsedUser);
+    }
+    setLoading(false);
   }, []);
 
   const login = (userData) => {
-    setUser(userData);
-    localStorage.setItem('telegram_auth', JSON.stringify(userData));
+    // Check if user is admin based on Telegram ID
+    const isAdmin = ADMIN_IDS.includes(userData.id);
+    const userWithRole = {
+      ...userData,
+      role: isAdmin ? 'admin' : 'user'
+    };
+    
+    setUser(userWithRole);
+    localStorage.setItem('user', JSON.stringify(userWithRole));
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('telegram_auth');
+    localStorage.removeItem('user');
   };
 
   const isAdmin = () => {
-    return user?.role === ADMIN_ROLES.SUPER_ADMIN;
-  };
-
-  const isModerator = () => {
-    return user?.role === ADMIN_ROLES.MODERATOR || isAdmin();
+    return user?.role === 'admin';
   };
 
   const value = {
@@ -49,10 +44,17 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     isAdmin,
-    isModerator,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
 export const useAuth = () => {
