@@ -7,9 +7,9 @@ const Login = () => {
   const navigate = useNavigate();
   const { user, login } = useAuth();
   const scriptRef = useRef(null);
+  const containerRef = useRef(null);
 
   useEffect(() => {
-    // Redirect if already logged in
     if (user) {
       navigate('/');
       return;
@@ -17,16 +17,18 @@ const Login = () => {
 
     if (!BOT_USERNAME) return;
 
-    // Set up Telegram auth callback
-    window.onTelegramAuth = (user) => {
-      if (user) {
-        login(user);
-        navigate('/');
-      }
-    };
+    // Only set up auth callback once
+    if (!window.onTelegramAuth) {
+      window.onTelegramAuth = (user) => {
+        if (user) {
+          login(user);
+          navigate('/');
+        }
+      };
+    }
 
-    // Add Telegram login widget
-    if (!scriptRef.current) {
+    // Only create and append script once
+    if (!scriptRef.current && containerRef.current && !containerRef.current.hasChildNodes()) {
       const script = document.createElement('script');
       script.src = 'https://telegram.org/js/telegram-widget.js?22';
       script.setAttribute('data-telegram-login', BOT_USERNAME);
@@ -36,25 +38,22 @@ const Login = () => {
       script.async = true;
 
       scriptRef.current = script;
-
-      const container = document.getElementById('telegram-login');
-      if (container && !container.hasChildNodes()) {
-        container.appendChild(script);
-      }
+      containerRef.current.appendChild(script);
     }
 
-    // Cleanup
+    // Cleanup only when component unmounts
     return () => {
-      if (scriptRef.current) {
-        const container = document.getElementById('telegram-login');
-        if (container) {
-          container.innerHTML = '';
-        }
+      const script = scriptRef.current;
+      const container = containerRef.current;
+
+      if (script && container) {
+        container.removeChild(script);
         scriptRef.current = null;
-        delete window.onTelegramAuth;
       }
+
+      delete window.onTelegramAuth;
     };
-  }, [user, login, navigate]);
+  }, []); // Only run once on mount
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-base-200">
@@ -66,7 +65,7 @@ const Login = () => {
           </p>
         </div>
 
-        <div id="telegram-login" className="flex justify-center" />
+        <div ref={containerRef} className="flex justify-center" />
 
         {!BOT_USERNAME && (
           <div className="text-center text-red-500 p-4 bg-red-500/10 rounded-lg">

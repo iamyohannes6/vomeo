@@ -179,48 +179,62 @@ export const getFeaturedChannels = async () => {
   }
 };
 
-// Consolidated promo functions
+/**
+ * Get promotional content
+ * @param {boolean} isSecondary Whether to get the secondary promo
+ * @returns {Promise<Object|null>} The promotional content or null if none exists
+ */
 export const getPromo = async (isSecondary = false) => {
   try {
     const targetRef = isSecondary ? secondaryPromoRef : promoRef;
     const querySnapshot = await getDocs(targetRef);
-    const promos = querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-    return promos.sort((a, b) => b.updatedAt - a.updatedAt)[0] || null;
+    
+    if (querySnapshot.empty) {
+      return null;
+    }
+
+    // Return the first promo document
+    const promoDoc = querySnapshot.docs[0];
+    return {
+      id: promoDoc.id,
+      ...promoDoc.data()
+    };
   } catch (error) {
     console.error('Error getting promo:', error);
     throw error;
   }
 };
 
+/**
+ * Update promotional content
+ * @param {Object} promoData The promotional content data
+ * @param {boolean} isSecondary Whether this is the secondary promo
+ * @returns {Promise<void>}
+ */
 export const updatePromoContent = async (promoData, isSecondary = false) => {
   try {
+    const targetRef = isSecondary ? secondaryPromoRef : promoRef;
+    const querySnapshot = await getDocs(targetRef);
+    
     const timestamp = Timestamp.now();
-    const data = {
+    const promoWithTimestamp = {
       ...promoData,
       updatedAt: timestamp
     };
 
-    const targetRef = isSecondary ? secondaryPromoRef : promoRef;
-    const querySnapshot = await getDocs(targetRef);
-    
-    if (!querySnapshot.empty) {
-      // Update existing promo
-      const promoDoc = querySnapshot.docs[0];
-      await updateDoc(doc(targetRef, promoDoc.id), data);
-      return { id: promoDoc.id, ...data };
-    } else {
-      // Create new promo
-      const docRef = await addDoc(targetRef, {
-        ...data,
+    if (querySnapshot.empty) {
+      // Create new promo document
+      await addDoc(targetRef, {
+        ...promoWithTimestamp,
         createdAt: timestamp
       });
-      return { id: docRef.id, ...data };
+    } else {
+      // Update existing promo document
+      const promoDoc = querySnapshot.docs[0];
+      await updateDoc(doc(targetRef, promoDoc.id), promoWithTimestamp);
     }
   } catch (error) {
-    console.error('Error updating promo content:', error);
+    console.error('Error updating promo:', error);
     throw error;
   }
 };

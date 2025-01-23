@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { 
   fetchChannels, 
   storeChannel, 
@@ -25,32 +25,46 @@ export const ChannelsProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch channels and promos
-  const loadData = async () => {
+  // Load initial data
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      
-      const [channelsData, promoData, secondaryPromoData] = await Promise.all([
-        fetchChannels(),
+
+      // Fetch channels
+      const [pendingChannels, approvedChannels, featuredChannels, rejectedChannels] = await Promise.all([
+        getPendingChannels(),
+        getApprovedChannels(),
+        getFeaturedChannels(),
+        getRejectedChannels()
+      ]);
+
+      setChannels({
+        pending: pendingChannels,
+        approved: approvedChannels,
+        featured: featuredChannels,
+        rejected: rejectedChannels
+      });
+
+      // Fetch promos
+      const [primaryPromo, secondaryPromo] = await Promise.all([
         getPromo(false),
         getPromo(true)
       ]);
-      
-      setChannels(channelsData);
-      setPromo(promoData);
-      setSecondaryPromo(secondaryPromoData);
+
+      setPromo(primaryPromo);
+      setSecondaryPromo(secondaryPromo);
     } catch (err) {
       console.error('Error loading data:', err);
-      setError('Failed to load data');
+      setError('Failed to load data. Please try again later.');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
   // Submit a new channel
   const submitChannel = async (channelData, submitter) => {
@@ -138,44 +152,33 @@ export const ChannelsProvider = ({ children }) => {
   };
 
   // Update promo content
-  const handleUpdatePromo = async (promoData, isSecondary = false) => {
+  const updatePromo = async (promoData, isSecondary = false) => {
     try {
-      setLoading(true);
-      setError(null);
-      
-      const updatedPromo = await updatePromoContent(promoData, isSecondary);
-      
-      // Update the correct promo state
+      await updatePromoContent(promoData, isSecondary);
       if (isSecondary) {
-        setSecondaryPromo(updatedPromo);
+        setSecondaryPromo(promoData);
       } else {
-        setPromo(updatedPromo);
+        setPromo(promoData);
       }
-      
-      // Reload all data to ensure consistency
-      await loadData();
     } catch (err) {
       console.error('Error updating promo:', err);
-      setError('Failed to update promotional content');
       throw err;
-    } finally {
-      setLoading(false);
     }
   };
 
   const value = {
     channels,
-    promo,
-    secondaryPromo,
     loading,
     error,
+    promo,
+    secondaryPromo,
+    updatePromo,
     submitChannel,
     approveChannel,
     rejectChannel,
     toggleFeature,
     toggleVerified,
     removeChannel: handleRemoveChannel,
-    updatePromoContent: handleUpdatePromo,
     loadData
   };
 
