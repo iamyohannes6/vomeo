@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { BOT_USERNAME } from '../config/telegram';
@@ -6,6 +6,7 @@ import { BOT_USERNAME } from '../config/telegram';
 const Login = () => {
   const navigate = useNavigate();
   const { user, login } = useAuth();
+  const scriptRef = useRef(null);
 
   useEffect(() => {
     if (user) {
@@ -15,36 +16,46 @@ const Login = () => {
 
     if (!BOT_USERNAME) return;
 
-    // Define callback function in global scope
-    window.onTelegramAuth = function(user) {
-      if (user) {
-        login(user);
-        navigate('/');
+    // Only set up the auth callback once
+    if (!window.onTelegramAuth) {
+      window.onTelegramAuth = function(user) {
+        if (user) {
+          login(user);
+          navigate('/');
+        }
+      };
+    }
+
+    // Only create and append the script if it hasn't been added yet
+    if (!scriptRef.current) {
+      const script = document.createElement('script');
+      script.src = 'https://telegram.org/js/telegram-widget.js?22';
+      script.setAttribute('data-telegram-login', BOT_USERNAME);
+      script.setAttribute('data-size', 'large');
+      script.setAttribute('data-onauth', 'onTelegramAuth(user)');
+      script.setAttribute('data-request-access', 'write');
+      script.async = true;
+
+      // Store reference to script
+      scriptRef.current = script;
+
+      // Add script to container
+      const container = document.getElementById('telegram-login');
+      if (container && !container.hasChildNodes()) {
+        container.appendChild(script);
       }
-    };
-
-    // Load Telegram widget script
-    const script = document.createElement('script');
-    script.src = 'https://telegram.org/js/telegram-widget.js?22';
-    script.setAttribute('data-telegram-login', BOT_USERNAME);
-    script.setAttribute('data-size', 'large');
-    script.setAttribute('data-onauth', 'onTelegramAuth(user)');
-    script.setAttribute('data-request-access', 'write');
-    script.async = true;
-
-    // Add script to container
-    const container = document.getElementById('telegram-login');
-    if (container) {
-      container.innerHTML = '';
-      container.appendChild(script);
     }
 
     return () => {
-      // Cleanup
-      if (container) {
-        container.innerHTML = '';
+      // Only clean up when component is unmounted
+      if (scriptRef.current) {
+        const container = document.getElementById('telegram-login');
+        if (container) {
+          container.innerHTML = '';
+        }
+        scriptRef.current = null;
+        delete window.onTelegramAuth;
       }
-      delete window.onTelegramAuth;
     };
   }, [user, login, navigate]);
 
@@ -63,9 +74,9 @@ const Login = () => {
         </div>
 
         {!BOT_USERNAME && (
-          <p className="text-center text-red-500">
+          <div className="text-center text-red-500 p-4 bg-red-500/10 rounded-lg">
             Error: Bot username not configured
-          </p>
+          </div>
         )}
 
         <p className="text-center text-sm text-gray-500">
