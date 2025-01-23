@@ -7,18 +7,18 @@ import PromoSection from '../components/PromoSection';
 import { categories } from '../config/categories';
 
 const ChannelCard = ({ channel }) => (
-  <div className="bg-base-200 rounded-xl p-4 hover:bg-base-300 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 border border-base-300/10">
-    <div className="flex items-center space-x-4">
+  <div className="bg-base-200 rounded-lg p-3 hover:bg-base-300 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 border border-base-300/10">
+    <div className="flex items-center space-x-3">
       {/* Channel Image */}
       {channel.photo_url ? (
         <img 
           src={channel.photo_url} 
           alt={channel.title}
-          className="w-14 h-14 rounded-xl object-cover ring-2 ring-base-300/50"
+          className="w-10 h-10 rounded-lg object-cover ring-1 ring-base-300/50"
         />
       ) : (
-        <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 ring-2 ring-base-300/50 flex items-center justify-center">
-          <span className="text-2xl font-semibold text-primary">
+        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 ring-1 ring-base-300/50 flex items-center justify-center">
+          <span className="text-lg font-semibold text-primary">
             {channel.title?.[0] || '@'}
           </span>
         </div>
@@ -26,20 +26,20 @@ const ChannelCard = ({ channel }) => (
 
       {/* Channel Info */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <h3 className="text-base font-semibold text-white truncate">
+        <div className="flex items-center gap-1.5">
+          <h3 className="text-sm font-medium text-white truncate">
             {channel.title || `@${channel.username}`}
           </h3>
           {channel.verified && (
-            <ShieldCheckIcon className="h-5 w-5 text-blue-500" />
+            <ShieldCheckIcon className="h-4 w-4 text-blue-500 flex-shrink-0" />
           )}
           {channel.featured && (
-            <StarIcon className="h-5 w-5 text-yellow-500" />
+            <StarIcon className="h-4 w-4 text-yellow-500 flex-shrink-0" />
           )}
         </div>
-        <p className="text-sm text-gray-400">@{channel.username}</p>
-        <p className="text-sm text-gray-400 flex items-center gap-2">
-          <span className="inline-block w-2 h-2 rounded-full bg-green-500"></span>
+        <p className="text-xs text-gray-400 truncate">@{channel.username}</p>
+        <p className="text-xs text-gray-400 flex items-center gap-1.5">
+          <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500"></span>
           {channel.member_count?.toLocaleString() || '0'} members
         </p>
       </div>
@@ -49,21 +49,21 @@ const ChannelCard = ({ channel }) => (
         href={`https://t.me/${channel.username}`}
         target="_blank"
         rel="noopener noreferrer"
-        className="px-4 py-2 bg-primary text-white text-sm rounded-lg hover:bg-primary/90 transition-all duration-300 hover:shadow-md hover:shadow-primary/20 font-medium"
+        className="px-3 py-1.5 bg-primary text-white text-xs rounded-lg hover:bg-primary/90 transition-all duration-300 hover:shadow-md hover:shadow-primary/20 font-medium whitespace-nowrap"
       >
-        Join Now
+        Join
       </a>
     </div>
 
     {/* Description */}
-    <p className="mt-3 text-sm text-gray-400 line-clamp-2">
+    <p className="mt-2 text-xs text-gray-400 line-clamp-2">
       {channel.description}
     </p>
 
     {/* Tags */}
     {channel.category && (
-      <div className="mt-3">
-        <span className="inline-block px-2 py-1 text-xs rounded-md bg-base-300 text-gray-300">
+      <div className="mt-2">
+        <span className="inline-block px-1.5 py-0.5 text-xs rounded bg-base-300 text-gray-300">
           {categories.find(c => c.value === channel.category)?.label || channel.category}
         </span>
       </div>
@@ -208,8 +208,8 @@ const Home = () => {
         {/* Featured Channels */}
         {channels.featured && channels.featured.length > 0 && (
           <div>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-white">Featured Channels</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-white">Featured Channels</h2>
               <div className="flex items-center gap-2">
                 <button 
                   onClick={() => scrollFeatured(-1)}
@@ -227,10 +227,10 @@ const Home = () => {
             </div>
             <div 
               ref={featuredScrollRef}
-              className="flex space-x-6 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-base-300 scroll-smooth"
+              className="flex space-x-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-base-300 scroll-smooth"
             >
               {channels.featured.map(channel => (
-                <div key={channel.id} className="min-w-[400px]">
+                <div key={channel.id} className="min-w-[300px] w-[300px]">
                   <ChannelCard channel={channel} />
                 </div>
               ))}
@@ -243,19 +243,24 @@ const Home = () => {
 
         {/* All Channels */}
         <div>
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="text-2xl font-bold text-white">All Channels</h2>
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-xl font-bold text-white">All Channels</h2>
+              <p className="text-sm text-gray-400 mt-1">
+                {sortedChannels.length} channels available
+              </p>
+            </div>
             <Link
               to="/submit"
-              className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-all duration-300 hover:shadow-md hover:shadow-primary/20 font-medium"
+              className="px-3 py-1.5 bg-primary text-white rounded-lg hover:bg-primary/90 transition-all duration-300 hover:shadow-md hover:shadow-primary/20 font-medium text-sm"
             >
-              Submit Channel
+              Submit
             </Link>
           </div>
 
           {/* Filters */}
-          <div className="bg-base-200/50 rounded-xl p-4 mb-8">
-            <div className="flex flex-wrap gap-4">
+          <div className="bg-base-200/50 rounded-lg p-3 mb-6">
+            <div className="flex flex-wrap gap-3">
               <div className="flex-1 min-w-[200px]">
                 <div className="relative">
                   <input
@@ -263,16 +268,16 @@ const Home = () => {
                     placeholder="Search channels..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full px-4 py-2 pl-10 bg-base-300 border border-base-300 rounded-lg text-gray-100 focus:outline-none focus:border-primary"
+                    className="w-full px-3 py-1.5 pl-9 bg-base-300 border border-base-300 rounded-lg text-gray-100 focus:outline-none focus:border-primary text-sm"
                   />
-                  <MagnifyingGlassIcon className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                  <MagnifyingGlassIcon className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
                 </div>
               </div>
               
               <select
                 value={filterCategory}
                 onChange={(e) => setFilterCategory(e.target.value)}
-                className="px-4 py-2 bg-base-300 border border-base-300 rounded-lg text-gray-100 focus:outline-none focus:border-primary min-w-[150px]"
+                className="px-3 py-1.5 bg-base-300 border border-base-300 rounded-lg text-gray-100 focus:outline-none focus:border-primary min-w-[150px] text-sm"
               >
                 {categories.map(category => (
                   <option key={category.value} value={category.value}>
@@ -284,7 +289,7 @@ const Home = () => {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="px-4 py-2 bg-base-300 border border-base-300 rounded-lg text-gray-100 focus:outline-none focus:border-primary min-w-[150px]"
+                className="px-3 py-1.5 bg-base-300 border border-base-300 rounded-lg text-gray-100 focus:outline-none focus:border-primary min-w-[150px] text-sm"
               >
                 <option value="newest">Newest First</option>
                 <option value="subscribers">Most Subscribers</option>
@@ -293,22 +298,22 @@ const Home = () => {
           </div>
 
           {/* Channel Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-h-[800px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-base-300">
+          <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-base-300">
             {sortedChannels.map(channel => (
               <ChannelCard key={channel.id} channel={channel} />
             ))}
             
             {sortedChannels.length === 0 && (
-              <div className="col-span-full flex flex-col items-center justify-center py-12 text-gray-400 bg-base-200/50 rounded-xl">
-                <FunnelIcon className="w-12 h-12 mb-4" />
-                <p className="text-lg">No channels found matching your criteria</p>
+              <div className="flex flex-col items-center justify-center py-8 text-gray-400 bg-base-200/50 rounded-lg">
+                <FunnelIcon className="w-10 h-10 mb-3" />
+                <p className="text-sm">No channels found matching your criteria</p>
                 <button 
                   onClick={() => {
                     setSearchQuery('');
                     setFilterCategory('all');
                     setSortBy('newest');
                   }}
-                  className="mt-4 text-primary hover:text-primary/80"
+                  className="mt-3 text-primary hover:text-primary/80 text-sm"
                 >
                   Clear Filters
                 </button>

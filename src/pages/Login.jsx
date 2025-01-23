@@ -13,21 +13,13 @@ const Login = () => {
       return;
     }
 
-    // Debug bot username
-    console.log('Bot Username:', BOT_USERNAME);
-    if (!BOT_USERNAME) {
-      console.error('Bot username is not set in environment variables!');
-      return;
-    }
+    if (!BOT_USERNAME) return;
 
     // Define callback function in global scope
     window.onTelegramAuth = function(user) {
-      console.log('Telegram auth response:', user);
       if (user) {
         login(user);
         navigate('/');
-      } else {
-        console.error('No user data received from Telegram login');
       }
     };
 
@@ -40,21 +32,11 @@ const Login = () => {
     script.setAttribute('data-request-access', 'write');
     script.async = true;
 
-    // Debug script attributes
-    script.onload = () => {
-      console.log('Telegram widget script loaded');
-    };
-    script.onerror = (error) => {
-      console.error('Error loading Telegram widget script:', error);
-    };
-
     // Add script to container
     const container = document.getElementById('telegram-login');
     if (container) {
       container.innerHTML = '';
       container.appendChild(script);
-    } else {
-      console.error('Login container not found!');
     }
 
     return () => {
