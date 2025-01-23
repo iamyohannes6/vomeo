@@ -1,8 +1,16 @@
 const BOT_TOKEN = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
-const STORAGE_CHANNEL_ID = import.meta.env.VITE_TELEGRAM_STORAGE_CHANNEL || '@vomeo_storage';
+const STORAGE_CHANNEL_ID = import.meta.env.VITE_TELEGRAM_STORAGE_CHANNEL;
+
+if (!BOT_TOKEN || !STORAGE_CHANNEL_ID) {
+  console.error('Missing required environment variables');
+}
 
 // Helper to make bot API calls
 const callBotApi = async (method, params = {}) => {
+  if (!BOT_TOKEN) {
+    throw new Error('Bot token not configured');
+  }
+
   const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/${method}`, {
     method: 'POST',
     headers: {
