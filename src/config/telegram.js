@@ -14,6 +14,7 @@ export const TELEGRAM_LOGIN_PARAMS = {
   showUserPhoto: true,
   lang: 'en',
   origin: 'https://vomeo.netlify.app',
+  domain: 'https://vomeo.netlify.app'
 };
 
 // Auth Routes
