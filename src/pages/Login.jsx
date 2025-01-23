@@ -44,7 +44,8 @@ const Login = () => {
     script.setAttribute('data-size', 'large');
     script.setAttribute('data-onauth', 'onTelegramAuth(user)');
     script.setAttribute('data-request-access', 'write');
-    
+    script.setAttribute('data-auth-url', 'https://vomeo.netlify.app/auth/telegram/callback');
+
     // Add script to container
     const container = document.getElementById('telegram-login');
     if (container) {
