@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { BOT_USERNAME, SITE_DOMAIN } from '../config/telegram';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -12,6 +13,9 @@ const Login = () => {
     if (user) {
       navigate(from, { replace: true });
     }
+
+    // Save intended path before login
+    sessionStorage.setItem('intendedPath', from);
 
     // Define the callback function exactly as Telegram provides
     window.onTelegramAuth = (user) => {
@@ -37,10 +41,11 @@ const Login = () => {
     // Load Telegram Widget Script - exactly as provided
     const script = document.createElement('script');
     script.src = 'https://telegram.org/js/telegram-widget.js?22';
-    script.setAttribute('data-telegram-login', 'vomeo_bot');
+    script.setAttribute('data-telegram-login', BOT_USERNAME);
     script.setAttribute('data-size', 'medium');
     script.setAttribute('data-onauth', 'onTelegramAuth(user)');
     script.setAttribute('data-request-access', 'write');
+    script.setAttribute('data-origin', SITE_DOMAIN);
     script.async = true;
 
     const container = document.getElementById('telegram-login');
