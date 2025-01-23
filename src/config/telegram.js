@@ -1,7 +1,15 @@
 // Telegram Bot Configuration
 const TELEGRAM_BOT_TOKEN = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
-const BOT_USERNAME = import.meta.env.VITE_BOT_USERNAME?.replace('@', ''); // Remove @ if present
+const BOT_USERNAME = import.meta.env.VITE_BOT_USERNAME || '';
 const STORAGE_CHANNEL = import.meta.env.VITE_TELEGRAM_STORAGE_CHANNEL;
+
+// Validate configuration
+if (!TELEGRAM_BOT_TOKEN) {
+  console.error('Telegram bot token is not set in environment variables!');
+}
+if (!BOT_USERNAME) {
+  console.error('Telegram bot username is not set in environment variables!');
+}
 
 // API Endpoints
 const TELEGRAM_API_BASE = 'https://api.telegram.org/bot' + TELEGRAM_BOT_TOKEN;
