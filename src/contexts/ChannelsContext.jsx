@@ -31,58 +31,122 @@ const channelsRef = collection(db, 'channels');
 const promoRef = collection(db, 'promo');
 const secondaryPromoRef = collection(db, 'secondaryPromo');
 
-// Channel query functions
+// Channel query functions with fallbacks
 const getPendingChannels = async () => {
-  const q = query(
-    channelsRef,
-    where('status', '==', 'pending'),
-    orderBy('createdAt', 'desc')
-  );
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data()
-  }));
+  try {
+    // Try with ordering
+    const q = query(
+      channelsRef,
+      where('status', '==', 'pending'),
+      orderBy('createdAt', 'desc')
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+  } catch (error) {
+    if (error.code === 'failed-precondition') {
+      // Fallback without ordering if index doesn't exist
+      const q = query(
+        channelsRef,
+        where('status', '==', 'pending')
+      );
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })).sort((a, b) => b.createdAt - a.createdAt);
+    }
+    throw error;
+  }
 };
 
 const getApprovedChannels = async () => {
-  const q = query(
-    channelsRef,
-    where('status', '==', 'approved'),
-    orderBy('updatedAt', 'desc')
-  );
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data()
-  }));
+  try {
+    const q = query(
+      channelsRef,
+      where('status', '==', 'approved'),
+      orderBy('updatedAt', 'desc')
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+  } catch (error) {
+    if (error.code === 'failed-precondition') {
+      const q = query(
+        channelsRef,
+        where('status', '==', 'approved')
+      );
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })).sort((a, b) => b.updatedAt - a.updatedAt);
+    }
+    throw error;
+  }
 };
 
 const getFeaturedChannels = async () => {
-  const q = query(
-    channelsRef,
-    where('status', '==', 'approved'),
-    where('featured', '==', true),
-    orderBy('updatedAt', 'desc')
-  );
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data()
-  }));
+  try {
+    const q = query(
+      channelsRef,
+      where('status', '==', 'approved'),
+      where('featured', '==', true),
+      orderBy('updatedAt', 'desc')
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+  } catch (error) {
+    if (error.code === 'failed-precondition') {
+      // Fallback to simpler query if index doesn't exist
+      const q = query(
+        channelsRef,
+        where('status', '==', 'approved'),
+        where('featured', '==', true)
+      );
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })).sort((a, b) => b.updatedAt - a.updatedAt);
+    }
+    throw error;
+  }
 };
 
 const getRejectedChannels = async () => {
-  const q = query(
-    channelsRef,
-    where('status', '==', 'rejected'),
-    orderBy('updatedAt', 'desc')
-  );
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data()
-  }));
+  try {
+    const q = query(
+      channelsRef,
+      where('status', '==', 'rejected'),
+      orderBy('updatedAt', 'desc')
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+  } catch (error) {
+    if (error.code === 'failed-precondition') {
+      const q = query(
+        channelsRef,
+        where('status', '==', 'rejected')
+      );
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })).sort((a, b) => b.updatedAt - a.updatedAt);
+    }
+    throw error;
+  }
 };
 
 export const ChannelsProvider = ({ children }) => {
@@ -103,29 +167,57 @@ export const ChannelsProvider = ({ children }) => {
       setLoading(true);
       setError(null);
 
-      // Fetch channels
-      const [pendingChannels, approvedChannels, featuredChannels, rejectedChannels] = await Promise.all([
+      // Fetch channels with individual error handling
+      const [pendingChannels, approvedChannels, featuredChannels, rejectedChannels] = await Promise.allSettled([
         getPendingChannels(),
         getApprovedChannels(),
         getFeaturedChannels(),
         getRejectedChannels()
       ]);
 
+      // Process results and handle errors
       setChannels({
-        pending: pendingChannels,
-        approved: approvedChannels,
-        featured: featuredChannels,
-        rejected: rejectedChannels
+        pending: pendingChannels.status === 'fulfilled' ? pendingChannels.value : [],
+        approved: approvedChannels.status === 'fulfilled' ? approvedChannels.value : [],
+        featured: featuredChannels.status === 'fulfilled' ? featuredChannels.value : [],
+        rejected: rejectedChannels.status === 'fulfilled' ? rejectedChannels.value : []
       });
 
-      // Fetch promos
-      const [primaryPromo, secondaryPromo] = await Promise.all([
+      // Check for any errors in channel fetching
+      const errors = [pendingChannels, approvedChannels, featuredChannels, rejectedChannels]
+        .filter(result => result.status === 'rejected')
+        .map(result => result.reason);
+
+      if (errors.length > 0) {
+        console.error('Some channel queries failed:', errors);
+      }
+
+      // Fetch promos with individual error handling
+      const [primaryPromo, secondaryPromo] = await Promise.allSettled([
         getPromo(false),
         getPromo(true)
       ]);
 
-      setPromo(primaryPromo);
-      setSecondaryPromo(secondaryPromo);
+      // Set promo states
+      if (primaryPromo.status === 'fulfilled') {
+        setPromo(primaryPromo.value);
+      }
+      if (secondaryPromo.status === 'fulfilled') {
+        setSecondaryPromo(secondaryPromo.value);
+      }
+
+      // Set error state if any promo fetching failed
+      if (primaryPromo.status === 'rejected' || secondaryPromo.status === 'rejected') {
+        console.error('Error fetching promos:', {
+          primary: primaryPromo.status === 'rejected' ? primaryPromo.reason : null,
+          secondary: secondaryPromo.status === 'rejected' ? secondaryPromo.reason : null
+        });
+      }
+
+      // Set overall error state if needed
+      if (errors.length > 0 || primaryPromo.status === 'rejected' || secondaryPromo.status === 'rejected') {
+        setError('Some data failed to load. Please try again later.');
+      }
     } catch (err) {
       console.error('Error loading data:', err);
       setError('Failed to load data. Please try again later.');
