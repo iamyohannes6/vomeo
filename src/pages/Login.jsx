@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { BOT_USERNAME, SITE_DOMAIN } from '../config/telegram';
+import { BOT_USERNAME } from '../config/telegram';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -37,32 +37,19 @@ const Login = () => {
       navigate(intendedPath);
     };
 
-    // Create script element with nonce
-    const script = document.createElement('script');
-    script.src = 'https://telegram.org/js/telegram-widget.js?22';
-    script.async = true;
-    script.defer = true;
-    script.crossOrigin = 'anonymous';
-    
-    // Add Telegram widget attributes
-    const attributes = {
-      'data-telegram-login': BOT_USERNAME,
-      'data-size': 'medium',
-      'data-onauth': 'onTelegramAuth(user)',
-      'data-request-access': 'write',
-      'data-origin': SITE_DOMAIN.slice(0, -1),
-      'data-userpic': 'false'
-    };
-
-    // Set all attributes
-    Object.entries(attributes).forEach(([key, value]) => {
-      script.setAttribute(key, value);
-    });
-
+    // Add the script tag exactly as Telegram provides
     const container = document.getElementById('telegram-login');
     if (container) {
-      container.innerHTML = ''; // Clear any existing content
-      container.appendChild(script);
+      container.innerHTML = `
+        <script 
+          async 
+          src="https://telegram.org/js/telegram-widget.js?22" 
+          data-telegram-login="${BOT_USERNAME}" 
+          data-size="medium" 
+          data-onauth="onTelegramAuth(user)" 
+          data-request-access="write"
+        ></script>
+      `;
     }
 
     return () => {
