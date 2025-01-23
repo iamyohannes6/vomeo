@@ -55,17 +55,19 @@ export const ChannelsProvider = ({ children }) => {
   const submitChannel = async (channelData) => {
     try {
       setLoading(true);
-      setError(null);
-      const savedChannel = await storeChannel(channelData);
-      setChannels(prev => ({
-        ...prev,
-        pending: [...prev.pending, savedChannel]
-      }));
-      return savedChannel;
+      await storeChannel({
+        ...channelData,
+        status: 'pending',
+        featured: false,
+        verified: false,
+        submittedAt: new Date(),
+        updatedAt: new Date()
+      });
+      await loadChannels(); // Refresh the channels list
+      return true;
     } catch (err) {
       console.error('Error submitting channel:', err);
-      setError(err.message);
-      throw err;
+      throw new Error(err.message || 'Failed to submit channel');
     } finally {
       setLoading(false);
     }
@@ -74,36 +76,42 @@ export const ChannelsProvider = ({ children }) => {
   // Approve a channel
   const approveChannel = async (channelId) => {
     try {
+      setLoading(true);
       await updateChannelStatus(channelId, 'approved');
-      const updatedChannels = await fetchChannels();
-      setChannels(updatedChannels);
+      await loadChannels();
     } catch (err) {
       console.error('Error approving channel:', err);
-      throw err;
+      setError('Failed to approve channel');
+    } finally {
+      setLoading(false);
     }
   };
 
   // Reject a channel
   const rejectChannel = async (channelId) => {
     try {
+      setLoading(true);
       await updateChannelStatus(channelId, 'rejected');
-      const updatedChannels = await fetchChannels();
-      setChannels(updatedChannels);
+      await loadChannels();
     } catch (err) {
       console.error('Error rejecting channel:', err);
-      throw err;
+      setError('Failed to reject channel');
+    } finally {
+      setLoading(false);
     }
   };
 
   // Toggle featured status
   const toggleFeature = async (channelId) => {
     try {
+      setLoading(true);
       await toggleChannelFeature(channelId);
-      const updatedChannels = await fetchChannels();
-      setChannels(updatedChannels);
+      await loadChannels();
     } catch (err) {
-      console.error('Error toggling feature:', err);
-      throw err;
+      console.error('Error toggling feature status:', err);
+      setError('Failed to update feature status');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -135,6 +143,19 @@ export const ChannelsProvider = ({ children }) => {
     }
   };
 
+  const loadChannels = async () => {
+    try {
+      setLoading(true);
+      const data = await fetchChannels();
+      setChannels(data);
+    } catch (err) {
+      console.error('Error loading channels:', err);
+      setError('Failed to load channels');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const value = {
     channels,
     promo,
@@ -146,7 +167,8 @@ export const ChannelsProvider = ({ children }) => {
     rejectChannel,
     toggleFeature,
     toggleVerified,
-    updatePromoContent
+    updatePromoContent,
+    loadChannels
   };
 
   return (
