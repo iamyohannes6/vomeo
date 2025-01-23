@@ -19,8 +19,7 @@ const Login = () => {
 
     // Define the callback function exactly as Telegram provides
     window.onTelegramAuth = (user) => {
-      // First show the alert as per Telegram's example
-      alert('Logged in as ' + user.first_name + ' ' + user.last_name + ' (' + user.id + (user.username ? ', @' + user.username : '') + ')');
+      console.log('Telegram auth data:', user); // Add logging
       
       // Then handle our app's login
       login({
@@ -45,7 +44,7 @@ const Login = () => {
     script.setAttribute('data-size', 'medium');
     script.setAttribute('data-onauth', 'onTelegramAuth(user)');
     script.setAttribute('data-request-access', 'write');
-    script.setAttribute('data-origin', SITE_DOMAIN);
+    script.setAttribute('data-origin', SITE_DOMAIN.slice(0, -1)); // Remove trailing slash
     script.async = true;
 
     const container = document.getElementById('telegram-login');
