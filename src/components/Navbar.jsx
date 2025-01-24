@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
 import { useAuth } from '../contexts/AuthContext';
+import UserPanel from './UserPanel';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -33,23 +34,16 @@ const Navbar = () => {
           <div className="hidden md:flex items-center space-x-6">
             <NavLink to="/explore">Explore</NavLink>
             <NavLink to="/submit">Submit</NavLink>
-            <button 
-              onClick={handleAuth}
-              className="text-sm text-neutral-400 hover:text-white transition-colors flex items-center gap-2"
-            >
-              {user ? (
-                <>
-                  <img 
-                    src={user.photoUrl} 
-                    alt={user.firstName} 
-                    className="w-6 h-6 rounded-full ring-1 ring-base-300/50"
-                  />
-                  <span>Logout</span>
-                </>
-              ) : (
-                'Login'
-              )}
-            </button>
+            {user ? (
+              <UserPanel onLogout={handleAuth} />
+            ) : (
+              <button 
+                onClick={handleAuth}
+                className="text-sm text-neutral-400 hover:text-white transition-colors"
+              >
+                Login
+              </button>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -78,23 +72,26 @@ const Navbar = () => {
             <div className="container mx-auto px-4 py-3 space-y-3 bg-base-100/80 backdrop-blur-sm">
               <NavLink to="/explore" mobile>Explore</NavLink>
               <NavLink to="/submit" mobile>Submit</NavLink>
-              <button 
-                onClick={handleAuth}
-                className="w-full text-left px-2 py-1.5 text-sm text-neutral-400 hover:text-white transition-colors flex items-center gap-2"
-              >
-                {user ? (
-                  <>
-                    <img 
-                      src={user.photoUrl} 
-                      alt={user.firstName} 
-                      className="w-6 h-6 rounded-full ring-1 ring-base-300/50"
-                    />
-                    <span>Logout</span>
-                  </>
-                ) : (
-                  'Login'
-                )}
-              </button>
+              {user ? (
+                <>
+                  <NavLink to="/profile" mobile>Profile</NavLink>
+                  <NavLink to="/bookmarks" mobile>Saved Channels</NavLink>
+                  <NavLink to="/settings" mobile>Settings</NavLink>
+                  <button 
+                    onClick={handleAuth}
+                    className="w-full text-left px-2 py-1.5 text-sm text-neutral-400 hover:text-white transition-colors"
+                  >
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <button 
+                  onClick={handleAuth}
+                  className="w-full text-left px-2 py-1.5 text-sm text-neutral-400 hover:text-white transition-colors"
+                >
+                  Login
+                </button>
+              )}
             </div>
           </motion.div>
         )}
