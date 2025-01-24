@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence, useInView } from 'framer-motion';
 import { 
   MagnifyingGlassIcon,
   AdjustmentsHorizontalIcon, 
@@ -14,6 +14,7 @@ import {
 import { useChannels } from '../contexts/ChannelsContext';
 import { Link } from 'react-router-dom';
 import { categories, memberRanges, sortOptions } from '../config/categories';
+import { fetchPaginatedChannels } from '../services/channelService';
 
 const ChannelCard = ({ channel }) => (
   <motion.div
@@ -175,8 +176,10 @@ const LoadingSkeleton = () => (
   </div>
 );
 
+const CHANNELS_PER_PAGE = 10;
+
 const Explore = () => {
-  const { channels, loading, error } = useChannels();
+  const { loading: contextLoading, error: contextError } = useChannels();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedMemberRange, setSelectedMemberRange] = useState('any');
@@ -184,6 +187,16 @@ const Explore = () => {
   const [onlyVerified, setOnlyVerified] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  
+  // Pagination state
+  const [channels, setChannels] = useState([]);
+  const [lastDoc, setLastDoc] = useState(null);
+  const [hasMore, setHasMore] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  
+  const loadMoreRef = useRef(null);
+  const isInView = useInView(loadMoreRef);
 
   // Debounce search input
   useEffect(() => {
@@ -194,161 +207,113 @@ const Explore = () => {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Filter and sort channels
-  const filteredChannels = channels.approved?.filter(channel => {
-    // Category filter
-    const matchesCategory = selectedCategory === 'all' || channel.category === selectedCategory;
-    
-    // Search filter
-    const matchesSearch = !debouncedSearch || 
-      channel.title?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-      channel.description?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-      channel.username?.toLowerCase().includes(debouncedSearch.toLowerCase());
-    
-    // Member range filter
-    const range = memberRanges.find(r => r.value === selectedMemberRange);
-    const memberCount = channel.statistics?.memberCount || 0;
-    const matchesMemberRange = memberCount >= range.min && memberCount < range.max;
+  // Reset pagination when filters change
+  useEffect(() => {
+    setChannels([]);
+    setLastDoc(null);
+    setHasMore(true);
+    loadChannels(true);
+  }, [selectedCategory, onlyVerified, sortBy, debouncedSearch]);
 
-    // Verification filter
-    const matchesVerification = !onlyVerified || channel.verified;
-
-    return matchesCategory && matchesSearch && matchesMemberRange && matchesVerification;
-  }) || [];
-
-  // Sort channels
-  const sortedChannels = [...filteredChannels].sort((a, b) => {
-    switch (sortBy) {
-      case 'popular':
-        return (b.statistics?.memberCount || 0) - (a.statistics?.memberCount || 0);
-      case 'recent':
-        return new Date(b.submittedAt?.toDate()) - new Date(a.submittedAt?.toDate());
-      case 'trending':
-        // For now, just use member count as a proxy for trending
-        return (b.statistics?.memberCount || 0) - (a.statistics?.memberCount || 0);
-      default:
-        return 0;
+  // Load more channels when scrolling
+  useEffect(() => {
+    if (isInView && hasMore && !loading) {
+      loadChannels();
     }
-  });
+  }, [isInView]);
 
-  if (error) {
+  // Load channels
+  const loadChannels = async (reset = false) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const filters = {
+        category: selectedCategory,
+        onlyVerified,
+        sortBy,
+        search: debouncedSearch
+      };
+
+      const result = await fetchPaginatedChannels(
+        filters,
+        reset ? null : lastDoc,
+        CHANNELS_PER_PAGE
+      );
+
+      setChannels(prev => reset ? result.channels : [...prev, ...result.channels]);
+      setLastDoc(result.lastDoc);
+      setHasMore(result.hasMore);
+    } catch (err) {
+      console.error('Error loading channels:', err);
+      setError('Failed to load channels');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Filter channels by search query
+  const filteredChannels = channels.filter(channel => {
+    if (!debouncedSearch) return true;
+    
+    const searchLower = debouncedSearch.toLowerCase();
     return (
-      <div className="min-h-screen bg-base-100 flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="text-red-500 text-xl">Error: {error}</div>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
-          >
-            Try Again
-          </button>
-        </div>
-      </div>
+      channel.title?.toLowerCase().includes(searchLower) ||
+      channel.description?.toLowerCase().includes(searchLower) ||
+      channel.username?.toLowerCase().includes(searchLower)
     );
-  }
+  });
 
   return (
     <div className="min-h-screen bg-base-100">
-      {/* Search Header */}
-      <div className="bg-base-200/50 backdrop-blur-lg sticky top-16 z-40 border-b border-base-300/50">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center gap-4">
-            <div className="relative flex-1">
-              <input
-                type="text"
-                placeholder="Search by name, description, or username..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-4 py-3 pl-12 rounded-xl bg-base-300/50 border border-base-300/50 focus:border-primary focus:ring-1 focus:ring-primary placeholder-neutral-500 text-neutral-200"
-              />
-              <MagnifyingGlassIcon className="w-5 h-5 text-neutral-500 absolute left-4 top-1/2 transform -translate-y-1/2" />
-            </div>
-            <button
-              onClick={() => setIsFilterOpen(true)}
-              className="lg:hidden p-3 rounded-xl bg-base-300/50 border border-base-300/50 hover:bg-base-300 transition-colors"
-            >
-              <AdjustmentsHorizontalIcon className="w-5 h-5" />
-            </button>
+      <div className="container mx-auto px-4 py-8">
+        {/* Search and Filter Header */}
+        <div className="flex flex-col md:flex-row gap-4 items-center mb-8">
+          <div className="relative flex-1 w-full">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search channels..."
+              className="w-full pl-12 pr-4 py-3 bg-base-200 border border-base-300/50 rounded-xl focus:outline-none focus:border-primary/50 text-white"
+            />
+            <MagnifyingGlassIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400" />
           </div>
+          
+          <button
+            onClick={() => setIsFilterOpen(!isFilterOpen)}
+            className="px-4 py-3 bg-base-200 border border-base-300/50 rounded-xl text-white hover:bg-base-300/50 transition-all duration-300 flex items-center gap-2"
+          >
+            <AdjustmentsHorizontalIcon className="w-5 h-5" />
+            Filters
+          </button>
         </div>
-      </div>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        <div className="flex flex-col lg:flex-row gap-8">
-          {/* Filters Sidebar for Desktop */}
-          <div className="hidden lg:block w-72 flex-shrink-0">
-            <div className="sticky top-36">
-              <FiltersSidebar
-                selectedCategory={selectedCategory}
-                setSelectedCategory={setSelectedCategory}
-                selectedMemberRange={selectedMemberRange}
-                setSelectedMemberRange={setSelectedMemberRange}
-                onlyVerified={onlyVerified}
-                setOnlyVerified={setOnlyVerified}
-              />
-            </div>
+        <div className="flex gap-8">
+          {/* Filters Sidebar */}
+          <div className={`${
+            isFilterOpen ? 'block' : 'hidden'
+          } md:block w-full md:w-64 shrink-0`}>
+            <FiltersSidebar
+              selectedCategory={selectedCategory}
+              setSelectedCategory={setSelectedCategory}
+              selectedMemberRange={selectedMemberRange}
+              setSelectedMemberRange={setSelectedMemberRange}
+              onlyVerified={onlyVerified}
+              setOnlyVerified={setOnlyVerified}
+            />
           </div>
 
-          {/* Mobile Filters Modal */}
-          <AnimatePresence>
-            {isFilterOpen && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-black/50 z-50 lg:hidden"
-                onClick={(e) => {
-                  if (e.target === e.currentTarget) {
-                    setIsFilterOpen(false);
-                  }
-                }}
-              >
-                <motion.div
-                  initial={{ x: '100%' }}
-                  animate={{ x: 0 }}
-                  exit={{ x: '100%' }}
-                  transition={{ type: 'tween', duration: 0.3 }}
-                  className="absolute right-0 top-0 h-full w-80 bg-base-200 border-l border-base-300/50 p-6 overflow-y-auto"
-                >
-                  <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-lg font-semibold text-white">Filters</h3>
-                    <button
-                      onClick={() => setIsFilterOpen(false)}
-                      className="p-2 hover:bg-base-300/50 rounded-lg"
-                    >
-                      <XMarkIcon className="w-6 h-6" />
-                    </button>
-                  </div>
-                  <FiltersSidebar
-                    selectedCategory={selectedCategory}
-                    setSelectedCategory={setSelectedCategory}
-                    selectedMemberRange={selectedMemberRange}
-                    setSelectedMemberRange={setSelectedMemberRange}
-                    onlyVerified={onlyVerified}
-                    setOnlyVerified={setOnlyVerified}
-                    onSelect={() => setIsFilterOpen(false)}
-                  />
-                </motion.div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Channel Grid */}
+          {/* Channels Grid */}
           <div className="flex-1">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-              <div>
-                <h2 className="text-xl font-bold text-white">
-                  {loading ? 'Loading Channels...' : `${sortedChannels.length} Channels Found`}
-                </h2>
-                <p className="text-sm text-neutral-400 mt-1">
-                  {selectedCategory !== 'all' && `Filtered by ${categories.find(c => c.value === selectedCategory)?.label}`}
-                </p>
-              </div>
+            <div className="mb-6 flex justify-between items-center">
+              <h2 className="text-xl font-semibold text-white">
+                {filteredChannels.length} Channels Found
+              </h2>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="px-4 py-2 bg-base-300/50 border border-base-300/50 rounded-lg text-sm text-neutral-200 focus:outline-none focus:border-primary min-w-[150px]"
+                className="bg-base-200 border border-base-300/50 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-primary/50"
               >
                 {sortOptions.map(option => (
                   <option key={option.value} value={option.value}>
@@ -358,36 +323,34 @@ const Explore = () => {
               </select>
             </div>
 
-            {loading ? (
-              <div className="grid grid-cols-1 gap-4">
-                {[...Array(6)].map((_, i) => (
-                  <LoadingSkeleton key={i} />
-                ))}
-              </div>
-            ) : sortedChannels.length > 0 ? (
-              <div className="grid grid-cols-1 gap-4">
-                {sortedChannels.map((channel) => (
-                  <ChannelCard key={channel.id} channel={channel} />
-                ))}
+            {error ? (
+              <div className="text-red-500 text-center py-8">
+                {error}
               </div>
             ) : (
-              <div className="text-center py-12 bg-base-200/50 rounded-xl">
-                <MagnifyingGlassIcon className="w-12 h-12 mx-auto mb-4 text-neutral-500" />
-                <h3 className="text-lg font-semibold text-white mb-2">No Channels Found</h3>
-                <p className="text-neutral-400 mb-4">Try adjusting your filters or search terms</p>
-                <button
-                  onClick={() => {
-                    setSearchQuery('');
-                    setSelectedCategory('all');
-                    setSelectedMemberRange('any');
-                    setOnlyVerified(false);
-                    setSortBy('popular');
-                  }}
-                  className="text-primary hover:text-primary/80 transition-colors"
-                >
-                  Clear All Filters
-                </button>
-              </div>
+              <>
+                <div className="grid gap-4">
+                  {filteredChannels.map(channel => (
+                    <ChannelCard key={channel.id} channel={channel} />
+                  ))}
+                </div>
+
+                {loading && (
+                  <div className="mt-4 space-y-4">
+                    <LoadingSkeleton />
+                    <LoadingSkeleton />
+                  </div>
+                )}
+
+                {!loading && !hasMore && filteredChannels.length > 0 && (
+                  <div className="text-neutral-400 text-center mt-8">
+                    No more channels to load
+                  </div>
+                )}
+
+                {/* Infinite scroll trigger */}
+                <div ref={loadMoreRef} className="h-4" />
+              </>
             )}
           </div>
         </div>
