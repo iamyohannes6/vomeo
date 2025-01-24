@@ -80,4 +80,4 @@ const Bookmarks = () => {
   );
 };
 
-export default Bookmarks;
+export default Bookmarks; 
