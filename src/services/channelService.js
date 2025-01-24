@@ -25,23 +25,22 @@ export const storeChannel = async (channelData, submitter) => {
     // Fetch channel statistics from Telegram
     const channelInfo = await getChannelInfo(channelData.username);
     
+    // Ensure submitter data is properly structured
+    const submitterData = {
+      id: submitter?.id || null,
+      username: submitter?.username || null,
+      firstName: submitter?.firstName || submitter?.first_name || null,
+      lastName: submitter?.lastName || submitter?.last_name || null,
+      photoUrl: submitter?.photoUrl || submitter?.photo_url || null
+    };
+
     const channel = {
       ...channelData,
       status: 'pending',
       featured: false,
       verified: false,
       photoUrl: channelInfo?.photo_url || null,
-      submittedBy: submitter ? {
-        id: submitter.id,
-        username: submitter.username,
-        firstName: submitter.first_name,
-        lastName: submitter.last_name
-      } : {
-        id: null,
-        username: 'anonymous',
-        firstName: null,
-        lastName: null
-      },
+      submittedBy: submitterData,
       statistics: {
         memberCount: channelInfo?.member_count || 0,
         messageCount: channelInfo?.message_count || 0,

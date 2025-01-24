@@ -67,6 +67,10 @@ const Submit = () => {
     setSuccess(false);
 
     try {
+      if (!user) {
+        throw new Error('You must be logged in to submit a channel');
+      }
+
       const cleanUsername = formData.username.replace('@', '').trim();
       if (!cleanUsername) {
         throw new Error('Please enter a channel username');
@@ -82,15 +86,9 @@ const Submit = () => {
       await submitChannel({
         ...formData,
         username: cleanUsername,
-        submittedBy: {
-          id: user?.id,
-          username: user?.username,
-          firstName: user?.first_name,
-          lastName: user?.last_name
-        },
-        photo_url: channelPreview?.photo_url,
-        member_count: channelPreview?.member_count,
-        title: channelPreview?.title
+        title: channelPreview?.title || '',
+        photoUrl: channelPreview?.photo_url || null,
+        memberCount: channelPreview?.member_count || 0
       });
 
       setSuccess(true);

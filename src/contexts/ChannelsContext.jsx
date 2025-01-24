@@ -11,6 +11,7 @@ import {
   getSecondaryPromo
 } from '../services/channelService';
 import { getChannelInfo } from '../utils/telegramApi';
+import { useAuth } from '../contexts/AuthContext';
 
 const ChannelsContext = createContext();
 
@@ -25,6 +26,7 @@ export const ChannelsProvider = ({ children }) => {
   const [secondaryPromo, setSecondaryPromo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { user } = useAuth();
 
   // Fetch channels and promos
   const loadData = async () => {
@@ -54,10 +56,24 @@ export const ChannelsProvider = ({ children }) => {
   }, []);
 
   // Submit a new channel
-  const submitChannel = async (channelData, submitter) => {
+  const submitChannel = async (channelData) => {
     try {
       setLoading(true);
-      await storeChannel(channelData, submitter);
+      
+      // Ensure we have user data
+      if (!user) {
+        throw new Error('You must be logged in to submit a channel');
+      }
+
+      const submitterData = {
+        id: user.id,
+        username: user.username,
+        firstName: user.firstName || user.first_name,
+        lastName: user.lastName || user.last_name,
+        photoUrl: user.photoUrl || user.photo_url
+      };
+
+      await storeChannel(channelData, submitterData);
       await loadData(); // Refresh all data
       return true;
     } catch (err) {
