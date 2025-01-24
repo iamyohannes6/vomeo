@@ -9,9 +9,7 @@ import {
   orderBy,
   Timestamp,
   getFirestore,
-  deleteDoc,
-  startAfter,
-  limit
+  deleteDoc
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { getChannelInfo } from '../utils/telegramApi';
@@ -302,57 +300,6 @@ export const updatePromoContent = async (promoData, isSecondary = false) => {
     }
   } catch (error) {
     console.error('Error updating promo content:', error);
-    throw error;
-  }
-};
-
-// Fetch paginated channels with filters
-export const fetchPaginatedChannels = async (filters = {}, lastDoc = null, limit = 10) => {
-  try {
-    let q = query(
-      channelsRef,
-      where('status', '==', 'approved')
-    );
-
-    // Apply filters
-    if (filters.category && filters.category !== 'all') {
-      q = query(q, where('category', '==', filters.category));
-    }
-
-    if (filters.onlyVerified) {
-      q = query(q, where('verified', '==', true));
-    }
-
-    // Add sorting
-    switch (filters.sortBy) {
-      case 'recent':
-        q = query(q, orderBy('submittedAt', 'desc'));
-        break;
-      case 'popular':
-      case 'trending':
-      default:
-        q = query(q, orderBy('statistics.memberCount', 'desc'));
-    }
-
-    // Add pagination
-    if (lastDoc) {
-      q = query(q, startAfter(lastDoc));
-    }
-    q = query(q, limit(limit));
-
-    const snapshot = await getDocs(q);
-    const channels = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-
-    return {
-      channels,
-      lastDoc: snapshot.docs[snapshot.docs.length - 1] || null,
-      hasMore: snapshot.docs.length === limit
-    };
-  } catch (error) {
-    console.error('Error fetching paginated channels:', error);
     throw error;
   }
 }; 
