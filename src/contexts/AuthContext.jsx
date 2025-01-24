@@ -84,6 +84,11 @@ export const AuthProvider = ({ children }) => {
     const isAdmin = ADMIN_IDS.includes(userData.id);
     const enhancedUser = {
       ...userData,
+      id: userData.id,
+      firstName: userData.first_name,
+      lastName: userData.last_name || '',
+      username: userData.username,
+      photoUrl: userData.photo_url,
       role: isAdmin ? 'admin' : 'user',
       lastLogin: Date.now(),
       expiresAt: Date.now() + SESSION_DURATION,

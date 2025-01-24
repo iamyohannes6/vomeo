@@ -75,16 +75,26 @@ const Profile = () => {
         {/* Profile Header */}
         <div className="bg-base-200 rounded-xl p-6 mb-8">
           <div className="flex items-start gap-6">
-            <img
-              src={user.photoUrl}
-              alt={user.firstName}
-              className="w-24 h-24 rounded-xl ring-2 ring-base-300/50"
-            />
+            {user.photoUrl ? (
+              <img
+                src={user.photoUrl}
+                alt={user.firstName}
+                className="w-24 h-24 rounded-xl ring-2 ring-base-300/50"
+              />
+            ) : (
+              <div className="w-24 h-24 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 ring-2 ring-base-300/50 flex items-center justify-center">
+                <span className="text-2xl font-bold text-primary">
+                  {user.firstName?.[0] || '@'}
+                </span>
+              </div>
+            )}
             <div className="flex-1">
               <h1 className="text-2xl font-bold text-white mb-1">
                 {user.firstName} {user.lastName}
               </h1>
-              <p className="text-neutral-400 mb-4">@{user.username}</p>
+              {user.username && (
+                <p className="text-neutral-400 mb-4">@{user.username}</p>
+              )}
               
               {/* Stats Grid */}
               <div className="grid grid-cols-3 gap-4 text-center">
