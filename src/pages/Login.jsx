@@ -18,7 +18,6 @@ const Login = () => {
     // Define callback function in global scope
     window.onTelegramAuth = function(telegramUser) {
       if (telegramUser) {
-        // Pass the raw Telegram user data directly
         login(telegramUser);
         navigate('/');
       }
