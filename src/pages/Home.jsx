@@ -10,9 +10,9 @@ const ChannelCard = ({ channel }) => (
   <div className="bg-base-200 rounded-lg p-3 hover:bg-base-300 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 border border-base-300/10">
     <div className="flex items-center space-x-3">
       {/* Channel Image */}
-      {channel.photo_url ? (
+      {channel.photoUrl ? (
         <img 
-          src={channel.photo_url} 
+          src={channel.photoUrl} 
           alt={channel.title}
           className="w-10 h-10 rounded-lg object-cover ring-1 ring-base-300/50"
         />
@@ -40,7 +40,7 @@ const ChannelCard = ({ channel }) => (
         <p className="text-xs text-gray-400 truncate">@{channel.username}</p>
         <p className="text-xs text-gray-400 flex items-center gap-1.5">
           <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500"></span>
-          {channel.member_count?.toLocaleString() || '0'} members
+          {channel.statistics?.memberCount?.toLocaleString() || '0'} members
         </p>
       </div>
 
@@ -124,7 +124,7 @@ const Home = () => {
   const sortedChannels = [...filteredChannels].sort((a, b) => {
     switch (sortBy) {
       case 'subscribers':
-        return (b.member_count || 0) - (a.member_count || 0);
+        return (b.statistics?.memberCount || 0) - (a.statistics?.memberCount || 0);
       case 'newest':
         return new Date(b.submittedAt?.toDate()) - new Date(a.submittedAt?.toDate());
       default:
@@ -134,77 +134,37 @@ const Home = () => {
 
   const scrollFeatured = (direction) => {
     if (featuredScrollRef.current) {
-      featuredScrollRef.current.scrollBy({
-        left: direction * 300,
-        behavior: 'smooth'
-      });
+      const scrollAmount = direction * 320; // Width of card + gap
+      featuredScrollRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
     }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-base-100">
-        <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[...Array(6)].map((_, i) => (
-              <LoadingSkeleton key={i} />
-            ))}
-          </div>
-        </div>
+      <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
+        <LoadingSkeleton />
+        <LoadingSkeleton />
+        <LoadingSkeleton />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-base-100 flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="text-red-500 text-xl">Error: {error}</div>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
-          >
-            Try Again
-          </button>
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="bg-red-900/50 border border-red-500 rounded-lg p-4">
+          <p className="text-red-500">{error}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-base-100">
-      {/* Hero Section */}
-      <div className="relative bg-gradient-to-br from-primary/20 via-base-100 to-base-100 pt-12 pb-6">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center space-y-6 max-w-3xl mx-auto">
-            <h1 className="text-4xl md:text-5xl font-bold text-white">
-              Discover the Best Telegram Channels
-            </h1>
-            <p className="text-lg text-gray-400">
-              Join thriving communities and stay updated with the content that matters to you
-            </p>
-            <div className="flex justify-center gap-4">
-              <Link
-                to="/submit"
-                className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-all duration-300 hover:shadow-lg hover:shadow-primary/20 font-medium"
-              >
-                Submit Your Channel
-              </Link>
-              <Link
-                to="/explore"
-                className="px-6 py-3 bg-base-200 text-white rounded-lg hover:bg-base-300 transition-all duration-300 font-medium"
-              >
-                Explore All
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div>
+      {/* Hero Promo Section */}
+      {promo && <PromoSection promo={promo} variant="hero" />}
       
       <div className="max-w-7xl mx-auto px-4 py-8 space-y-12">
-        {/* Hero Promo Section */}
-        {promo && <PromoSection promo={promo} variant="hero" />}
-
         {/* Featured Channels */}
         {channels.featured && channels.featured.length > 0 && (
           <div>

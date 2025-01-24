@@ -6,15 +6,15 @@ const CompactChannelCard = ({ channel }) => {
       <div className="flex items-center space-x-3">
         {/* Channel Image */}
         <div className="w-10 h-10 rounded-full bg-base-300 flex items-center justify-center">
-          {channel.profilePicture ? (
+          {channel.photoUrl ? (
             <img 
-              src={channel.profilePicture} 
-              alt={channel.name} 
+              src={channel.photoUrl} 
+              alt={channel.title} 
               className="w-full h-full rounded-full object-cover"
             />
           ) : (
             <span className="text-lg font-semibold text-gray-400">
-              {channel.name.charAt(0)}
+              {channel.title?.[0] || '@'}
             </span>
           )}
         </div>
@@ -22,14 +22,14 @@ const CompactChannelCard = ({ channel }) => {
         {/* Channel Info */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center space-x-1">
-            <h3 className="text-sm font-semibold text-gray-100 truncate">{channel.name}</h3>
+            <h3 className="text-sm font-semibold text-gray-100 truncate">{channel.title}</h3>
             {channel.verified && (
               <ShieldCheckIcon className="w-4 h-4 text-blue-500 flex-shrink-0" />
             )}
           </div>
           <div className="flex items-center space-x-1 text-xs text-gray-400">
             <UsersIcon className="w-3 h-3" />
-            <span>{channel.subscribers || 0} members</span>
+            <span>{channel.statistics?.memberCount?.toLocaleString() || '0'} members</span>
           </div>
         </div>
 

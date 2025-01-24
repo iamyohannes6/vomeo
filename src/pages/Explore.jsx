@@ -23,9 +23,9 @@ const ChannelCard = ({ channel }) => (
   >
     <div className="flex items-center gap-4">
       {/* Channel Image */}
-      {channel.photo_url ? (
+      {channel.photoUrl ? (
         <img 
-          src={channel.photo_url} 
+          src={channel.photoUrl} 
           alt={channel.title}
           className="w-12 h-12 rounded-xl object-cover ring-2 ring-base-300/50 group-hover:ring-primary/50 transition-all"
         />
@@ -53,7 +53,7 @@ const ChannelCard = ({ channel }) => (
         <div className="flex items-center gap-4 mt-1">
           <span className="text-xs text-neutral-400 flex items-center gap-1">
             <UsersIcon className="w-3 h-3" />
-            {channel.member_count?.toLocaleString() || '0'} members
+            {channel.statistics?.memberCount?.toLocaleString() || '0'} members
           </span>
           {channel.category && (
             <span className="text-xs text-neutral-400 flex items-center gap-1">
@@ -207,7 +207,7 @@ const Explore = () => {
     
     // Member range filter
     const range = memberRanges.find(r => r.value === selectedMemberRange);
-    const memberCount = channel.member_count || 0;
+    const memberCount = channel.statistics?.memberCount || 0;
     const matchesMemberRange = memberCount >= range.min && memberCount < range.max;
 
     // Verification filter
@@ -220,14 +220,12 @@ const Explore = () => {
   const sortedChannels = [...filteredChannels].sort((a, b) => {
     switch (sortBy) {
       case 'popular':
-        return (b.member_count || 0) - (a.member_count || 0);
+        return (b.statistics?.memberCount || 0) - (a.statistics?.memberCount || 0);
       case 'recent':
         return new Date(b.submittedAt?.toDate()) - new Date(a.submittedAt?.toDate());
-      case 'active':
-        // You might want to implement a proper activity metric
-        return (b.member_count || 0) - (a.member_count || 0);
-      case 'verified':
-        return (b.verified ? 1 : 0) - (a.verified ? 1 : 0);
+      case 'trending':
+        // For now, just use member count as a proxy for trending
+        return (b.statistics?.memberCount || 0) - (a.statistics?.memberCount || 0);
       default:
         return 0;
     }
