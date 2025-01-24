@@ -2,7 +2,7 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
-import { getAnalytics, isSupported } from "firebase/analytics";
+import { getAnalytics } from "firebase/analytics";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -21,18 +21,6 @@ const app = initializeApp(firebaseConfig);
 // Initialize services
 export const db = getFirestore(app);
 export const auth = getAuth(app);
-
-// Initialize analytics only if supported and in production
-export const analytics = async () => {
-  if (import.meta.env.PROD && await isSupported()) {
-    try {
-      return getAnalytics(app);
-    } catch (error) {
-      console.warn('Analytics failed to initialize:', error);
-      return null;
-    }
-  }
-  return null;
-};
+export const analytics = getAnalytics(app);
 
 export default app; 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { StarIcon, ShieldCheckIcon, FunnelIcon, ChevronLeftIcon, ChevronRightIcon, MagnifyingGlassIcon } from '@heroicons/react/24/solid';
 import { useChannels } from '../contexts/ChannelsContext';
@@ -89,8 +89,6 @@ const LoadingSkeleton = () => (
   </div>
 );
 
-const CHANNELS_PER_PAGE = 10;
-
 const Home = () => {
   const { channels, promo, secondaryPromo, loading, error } = useChannels();
   const [sortBy, setSortBy] = useState('newest');
@@ -98,8 +96,6 @@ const Home = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const featuredScrollRef = useRef(null);
-  const [page, setPage] = useState(1);
-  const channelsLoader = useRef(null);
 
   // Debounce search input
   useEffect(() => {
@@ -109,29 +105,6 @@ const Home = () => {
 
     return () => clearTimeout(timer);
   }, [searchQuery]);
-
-  // Intersection Observer callback
-  const handleObserver = useCallback((entries) => {
-    const target = entries[0];
-    if (target.isIntersecting && !loading && sortedChannels.length >= page * CHANNELS_PER_PAGE) {
-      setPage(prev => prev + 1);
-    }
-  }, [loading, sortedChannels.length, page]);
-
-  // Set up Intersection Observer
-  useEffect(() => {
-    const option = {
-      root: null,
-      rootMargin: "20px",
-      threshold: 0
-    };
-    const observer = new IntersectionObserver(handleObserver, option);
-    if (channelsLoader.current) observer.observe(channelsLoader.current);
-    
-    return () => {
-      if (channelsLoader.current) observer.unobserve(channelsLoader.current);
-    };
-  }, [handleObserver]);
 
   // Filter and sort channels
   const filteredChannels = channels.approved?.filter(channel => {
@@ -158,9 +131,6 @@ const Home = () => {
         return 0;
     }
   });
-
-  // Paginate channels
-  const displayedChannels = sortedChannels.slice(0, page * CHANNELS_PER_PAGE);
 
   const scrollFeatured = (direction) => {
     if (featuredScrollRef.current) {
@@ -289,43 +259,25 @@ const Home = () => {
 
           {/* Channel Grid */}
           <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-base-300">
-            {loading && page === 1 ? (
-              <>
-                <LoadingSkeleton />
-                <LoadingSkeleton />
-                <LoadingSkeleton />
-              </>
-            ) : (
-              <>
-                {displayedChannels.map(channel => (
-                  <ChannelCard key={channel.id} channel={channel} />
-                ))}
-                
-                {/* Loading indicator */}
-                <div ref={channelsLoader} className="py-4 flex justify-center">
-                  {loading && page > 1 && (
-                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
-                  )}
-                </div>
-                
-                {displayedChannels.length === 0 && (
-                  <div className="flex flex-col items-center justify-center py-8 text-gray-400 bg-base-200/50 rounded-lg">
-                    <FunnelIcon className="w-10 h-10 mb-3" />
-                    <p className="text-sm">No channels found matching your criteria</p>
-                    <button 
-                      onClick={() => {
-                        setSearchQuery('');
-                        setFilterCategory('all');
-                        setSortBy('newest');
-                        setPage(1);
-                      }}
-                      className="mt-3 text-primary hover:text-primary/80 text-sm"
-                    >
-                      Clear Filters
-                    </button>
-                  </div>
-                )}
-              </>
+            {sortedChannels.map(channel => (
+              <ChannelCard key={channel.id} channel={channel} />
+            ))}
+            
+            {sortedChannels.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-8 text-gray-400 bg-base-200/50 rounded-lg">
+                <FunnelIcon className="w-10 h-10 mb-3" />
+                <p className="text-sm">No channels found matching your criteria</p>
+                <button 
+                  onClick={() => {
+                    setSearchQuery('');
+                    setFilterCategory('all');
+                    setSortBy('newest');
+                  }}
+                  className="mt-3 text-primary hover:text-primary/80 text-sm"
+                >
+                  Clear Filters
+                </button>
+              </div>
             )}
           </div>
         </div>

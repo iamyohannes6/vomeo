@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   MagnifyingGlassIcon,
@@ -175,8 +175,6 @@ const LoadingSkeleton = () => (
   </div>
 );
 
-const CHANNELS_PER_PAGE = 10;
-
 const Explore = () => {
   const { channels, loading, error } = useChannels();
   const [searchQuery, setSearchQuery] = useState('');
@@ -186,8 +184,6 @@ const Explore = () => {
   const [onlyVerified, setOnlyVerified] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [page, setPage] = useState(1);
-  const loader = useRef(null);
 
   // Debounce search input
   useEffect(() => {
@@ -197,29 +193,6 @@ const Explore = () => {
 
     return () => clearTimeout(timer);
   }, [searchQuery]);
-
-  // Intersection Observer callback
-  const handleObserver = useCallback((entries) => {
-    const target = entries[0];
-    if (target.isIntersecting && !loading && sortedChannels.length >= page * CHANNELS_PER_PAGE) {
-      setPage(prev => prev + 1);
-    }
-  }, [loading, sortedChannels.length, page]);
-
-  // Set up Intersection Observer
-  useEffect(() => {
-    const option = {
-      root: null,
-      rootMargin: "20px",
-      threshold: 0
-    };
-    const observer = new IntersectionObserver(handleObserver, option);
-    if (loader.current) observer.observe(loader.current);
-    
-    return () => {
-      if (loader.current) observer.unobserve(loader.current);
-    };
-  }, [handleObserver]);
 
   // Filter and sort channels
   const filteredChannels = channels.approved?.filter(channel => {
@@ -257,9 +230,6 @@ const Explore = () => {
         return 0;
     }
   });
-
-  // Paginate channels
-  const displayedChannels = sortedChannels.slice(0, page * CHANNELS_PER_PAGE);
 
   if (error) {
     return (
@@ -388,27 +358,18 @@ const Explore = () => {
               </select>
             </div>
 
-            {loading && page === 1 ? (
+            {loading ? (
               <div className="grid grid-cols-1 gap-4">
                 {[...Array(6)].map((_, i) => (
                   <LoadingSkeleton key={i} />
                 ))}
               </div>
-            ) : displayedChannels.length > 0 ? (
-              <>
-                <div className="grid grid-cols-1 gap-4">
-                  {displayedChannels.map((channel) => (
-                    <ChannelCard key={channel.id} channel={channel} />
-                  ))}
-                </div>
-                
-                {/* Loading indicator */}
-                <div ref={loader} className="py-4 flex justify-center">
-                  {loading && page > 1 && (
-                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
-                  )}
-                </div>
-              </>
+            ) : sortedChannels.length > 0 ? (
+              <div className="grid grid-cols-1 gap-4">
+                {sortedChannels.map((channel) => (
+                  <ChannelCard key={channel.id} channel={channel} />
+                ))}
+              </div>
             ) : (
               <div className="text-center py-12 bg-base-200/50 rounded-xl">
                 <MagnifyingGlassIcon className="w-12 h-12 mx-auto mb-4 text-neutral-500" />
