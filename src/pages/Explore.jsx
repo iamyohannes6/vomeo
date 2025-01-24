@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence, useInView } from 'framer-motion';
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   MagnifyingGlassIcon,
   AdjustmentsHorizontalIcon, 
@@ -175,8 +175,6 @@ const LoadingSkeleton = () => (
   </div>
 );
 
-const CHANNELS_PER_PAGE = 10;
-
 const Explore = () => {
   const { channels, loading, error } = useChannels();
   const [searchQuery, setSearchQuery] = useState('');
@@ -186,11 +184,6 @@ const Explore = () => {
   const [onlyVerified, setOnlyVerified] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  const [displayedChannels, setDisplayedChannels] = useState([]);
-  const loadMoreRef = useRef(null);
-  const isInView = useInView(loadMoreRef);
 
   // Debounce search input
   useEffect(() => {
@@ -202,73 +195,41 @@ const Explore = () => {
   }, [searchQuery]);
 
   // Filter and sort channels
-  const getFilteredAndSortedChannels = () => {
-    const filtered = channels.approved?.filter(channel => {
-      // Category filter
-      const matchesCategory = selectedCategory === 'all' || channel.category === selectedCategory;
-      
-      // Search filter
-      const matchesSearch = !debouncedSearch || 
-        channel.title?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-        channel.description?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-        channel.username?.toLowerCase().includes(debouncedSearch.toLowerCase());
-      
-      // Member range filter
-      const range = memberRanges.find(r => r.value === selectedMemberRange);
-      const memberCount = channel.statistics?.memberCount || 0;
-      const matchesMemberRange = memberCount >= range.min && memberCount < range.max;
-
-      // Verification filter
-      const matchesVerification = !onlyVerified || channel.verified;
-
-      return matchesCategory && matchesSearch && matchesMemberRange && matchesVerification;
-    }) || [];
-
-    return [...filtered].sort((a, b) => {
-      switch (sortBy) {
-        case 'popular':
-          return (b.statistics?.memberCount || 0) - (a.statistics?.memberCount || 0);
-        case 'recent':
-          return new Date(b.submittedAt?.toDate()) - new Date(a.submittedAt?.toDate());
-        case 'trending':
-          // For now, just use member count as a proxy for trending
-          return (b.statistics?.memberCount || 0) - (a.statistics?.memberCount || 0);
-        default:
-          return 0;
-      }
-    });
-  };
-
-  // Load more channels when scrolling
-  useEffect(() => {
-    if (isInView && hasMore && !loading) {
-      setPage(prev => prev + 1);
-    }
-  }, [isInView, hasMore, loading]);
-
-  // Update displayed channels when filters change
-  useEffect(() => {
-    const allChannels = getFilteredAndSortedChannels();
-    const totalPages = Math.ceil(allChannels.length / CHANNELS_PER_PAGE);
-    const channelsToShow = allChannels.slice(0, page * CHANNELS_PER_PAGE);
+  const filteredChannels = channels.approved?.filter(channel => {
+    // Category filter
+    const matchesCategory = selectedCategory === 'all' || channel.category === selectedCategory;
     
-    setDisplayedChannels(channelsToShow);
-    setHasMore(page < totalPages);
-  }, [
-    channels.approved,
-    selectedCategory,
-    selectedMemberRange,
-    onlyVerified,
-    debouncedSearch,
-    sortBy,
-    page
-  ]);
+    // Search filter
+    const matchesSearch = !debouncedSearch || 
+      channel.title?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      channel.description?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      channel.username?.toLowerCase().includes(debouncedSearch.toLowerCase());
+    
+    // Member range filter
+    const range = memberRanges.find(r => r.value === selectedMemberRange);
+    const memberCount = channel.statistics?.memberCount || 0;
+    const matchesMemberRange = memberCount >= range.min && memberCount < range.max;
 
-  // Reset pagination when filters change
-  useEffect(() => {
-    setPage(1);
-    setHasMore(true);
-  }, [selectedCategory, selectedMemberRange, onlyVerified, debouncedSearch, sortBy]);
+    // Verification filter
+    const matchesVerification = !onlyVerified || channel.verified;
+
+    return matchesCategory && matchesSearch && matchesMemberRange && matchesVerification;
+  }) || [];
+
+  // Sort channels
+  const sortedChannels = [...filteredChannels].sort((a, b) => {
+    switch (sortBy) {
+      case 'popular':
+        return (b.statistics?.memberCount || 0) - (a.statistics?.memberCount || 0);
+      case 'recent':
+        return new Date(b.submittedAt?.toDate()) - new Date(a.submittedAt?.toDate());
+      case 'trending':
+        // For now, just use member count as a proxy for trending
+        return (b.statistics?.memberCount || 0) - (a.statistics?.memberCount || 0);
+      default:
+        return 0;
+    }
+  });
 
   if (error) {
     return (
@@ -378,7 +339,7 @@ const Explore = () => {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
               <div>
                 <h2 className="text-xl font-bold text-white">
-                  {loading ? 'Loading Channels...' : `${getFilteredAndSortedChannels().length} Channels Found`}
+                  {loading ? 'Loading Channels...' : `${sortedChannels.length} Channels Found`}
                 </h2>
                 <p className="text-sm text-neutral-400 mt-1">
                   {selectedCategory !== 'all' && `Filtered by ${categories.find(c => c.value === selectedCategory)?.label}`}
@@ -397,27 +358,18 @@ const Explore = () => {
               </select>
             </div>
 
-            {loading && page === 1 ? (
+            {loading ? (
               <div className="grid grid-cols-1 gap-4">
-                {[...Array(3)].map((_, i) => (
+                {[...Array(6)].map((_, i) => (
                   <LoadingSkeleton key={i} />
                 ))}
               </div>
-            ) : displayedChannels.length > 0 ? (
-              <>
-                <div className="grid grid-cols-1 gap-4">
-                  {displayedChannels.map((channel) => (
-                    <ChannelCard key={channel.id} channel={channel} />
-                  ))}
-                </div>
-                
-                {/* Loading indicator */}
-                <div ref={loadMoreRef} className="mt-8 flex justify-center">
-                  {hasMore && (
-                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
-                  )}
-                </div>
-              </>
+            ) : sortedChannels.length > 0 ? (
+              <div className="grid grid-cols-1 gap-4">
+                {sortedChannels.map((channel) => (
+                  <ChannelCard key={channel.id} channel={channel} />
+                ))}
+              </div>
             ) : (
               <div className="text-center py-12 bg-base-200/50 rounded-xl">
                 <MagnifyingGlassIcon className="w-12 h-12 mx-auto mb-4 text-neutral-500" />

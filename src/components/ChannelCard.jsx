@@ -1,12 +1,26 @@
 import { useState, useEffect } from 'react';
-import { ShieldCheckIcon, StarIcon, ArrowPathIcon } from '@heroicons/react/24/solid';
+import { motion } from 'framer-motion';
+import { 
+  ShieldCheckIcon, 
+  StarIcon, 
+  BookmarkIcon as BookmarkOutline 
+} from '@heroicons/react/24/outline';
+import { BookmarkIcon as BookmarkSolid } from '@heroicons/react/24/solid';
+import { ArrowPathIcon } from '@heroicons/react/24/solid';
 import { getChannelInfo } from '../utils/telegramApi';
 import { channelCache } from '../utils/cache';
+import { useBookmarks } from '../contexts/BookmarkContext';
+import { useToast } from '../contexts/ToastContext';
+import { useAuth } from '../contexts/AuthContext';
 
 export const ChannelCard = ({ channel }) => {
+  const { isBookmarked, addBookmark, removeBookmark } = useBookmarks();
+  const { addToast } = useToast();
+  const { user } = useAuth();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
   const fetchStats = async (force = false) => {
     try {
@@ -33,71 +47,125 @@ export const ChannelCard = ({ channel }) => {
     fetchStats(true);
   };
 
+  const handleBookmark = async () => {
+    if (!user) {
+      addToast('Please login to bookmark channels', 'info');
+      return;
+    }
+
+    const isCurrentlyBookmarked = isBookmarked(channel.id);
+    const success = isCurrentlyBookmarked 
+      ? await removeBookmark(channel.id)
+      : await addBookmark(channel);
+
+    if (success) {
+      addToast(
+        isCurrentlyBookmarked 
+          ? 'Channel removed from bookmarks' 
+          : 'Channel added to bookmarks',
+        'success'
+      );
+    } else {
+      addToast('Failed to update bookmark', 'error');
+    }
+  };
+
   return (
-    <div className="bg-surface p-4 rounded-lg hover:shadow-lg transition-shadow">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      whileHover={{ scale: 1.01 }}
+      onHoverStart={() => setIsHovered(true)}
+      onHoverEnd={() => setIsHovered(false)}
+      className="bg-base-200 rounded-xl p-4 hover:bg-base-300/50 transition-all duration-300 group border border-base-300/50"
+    >
       <div className="flex items-center gap-4">
         {/* Channel Image */}
-        <div className="w-16 h-16 rounded-lg overflow-hidden bg-base-300 flex-shrink-0">
+        <motion.div
+          whileHover={{ scale: 1.05 }}
+          className="relative w-12 h-12"
+        >
           {stats?.photo_url ? (
             <img 
               src={stats.photo_url} 
-              alt={channel.title} 
-              className="w-full h-full object-cover"
+              alt={channel.title}
+              className="w-full h-full rounded-xl object-cover ring-2 ring-base-300/50 group-hover:ring-primary/50 transition-all"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-xl font-bold">
-              {channel.title?.[0] || '?'}
+            <div className="w-full h-full rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 ring-2 ring-base-300/50 group-hover:ring-primary/50 transition-all flex items-center justify-center">
+              <span className="text-xl font-semibold text-primary">
+                {channel.title?.[0] || '@'}
+              </span>
             </div>
           )}
-        </div>
+        </motion.div>
 
         {/* Channel Info */}
-        <div className="flex-grow min-w-0">
+        <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <h3 className="font-bold text-lg truncate">{channel.title}</h3>
-            {channel.verified && (
-              <ShieldCheckIcon className="w-5 h-5 text-primary flex-shrink-0" />
-            )}
-            {channel.featured && (
-              <StarIcon className="w-5 h-5 text-yellow-500 flex-shrink-0" />
-            )}
+            <h3 className="text-base font-semibold text-white truncate">
+              {channel.title || `@${channel.username}`}
+            </h3>
+            <div className="flex items-center gap-1">
+              {channel.verified && (
+                <motion.div whileHover={{ scale: 1.2 }}>
+                  <ShieldCheckIcon className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                </motion.div>
+              )}
+              {channel.featured && (
+                <motion.div whileHover={{ scale: 1.2 }}>
+                  <StarIcon className="h-4 w-4 text-yellow-500 flex-shrink-0" />
+                </motion.div>
+              )}
+            </div>
           </div>
-          
-          <div className="text-sm text-neutral-400">@{channel.username}</div>
-          
-          {/* Stats */}
-          <div className="mt-1 text-sm text-neutral-400 flex items-center gap-2">
-            {!loading && stats?.member_count && (
-              <>
-                <span>{stats.member_count.toLocaleString()} subscribers</span>
-                <button 
-                  onClick={handleRefresh}
-                  disabled={refreshing}
-                  className="p-1 hover:text-primary transition-colors"
-                  title="Refresh stats"
-                >
-                  <ArrowPathIcon 
-                    className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} 
-                  />
-                </button>
-              </>
-            )}
-          </div>
-          
-          {/* Description */}
-          <p className="mt-2 text-sm line-clamp-2">{channel.description}</p>
+          <p className="text-sm text-neutral-400 truncate">@{channel.username}</p>
+          <p className="text-sm text-neutral-400 flex items-center gap-1.5 mt-1">
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500"></span>
+            {channel.statistics?.memberCount?.toLocaleString() || '0'} members
+          </p>
         </div>
 
-        {/* Join Button */}
-        <a 
-          href={`https://t.me/${channel.username}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="btn btn-primary btn-sm flex-shrink-0"
-        >
-          Join
-        </a>
+        {/* Actions */}
+        <div className="flex items-center gap-2">
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handleBookmark}
+            className="p-2 rounded-lg hover:bg-base-300 transition-colors"
+          >
+            {isBookmarked(channel.id) ? (
+              <BookmarkSolid className="w-5 h-5 text-primary" />
+            ) : (
+              <BookmarkOutline className="w-5 h-5 text-neutral-400 hover:text-primary" />
+            )}
+          </motion.button>
+          
+          <motion.a
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            href={`https://t.me/${channel.username}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-4 py-2 bg-primary text-white text-sm rounded-lg hover:bg-primary/90 transition-all duration-300 font-medium whitespace-nowrap"
+          >
+            Join Now
+          </motion.a>
+        </div>
       </div>
-    </div>
+
+      {/* Description */}
+      <motion.p 
+        initial={{ height: 0, opacity: 0 }}
+        animate={{ 
+          height: isHovered ? 'auto' : 0,
+          opacity: isHovered ? 1 : 0
+        }}
+        className="mt-3 text-sm text-neutral-400 overflow-hidden"
+      >
+        {channel.description}
+      </motion.p>
+    </motion.div>
   );
 }; 
